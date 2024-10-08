@@ -1,9 +1,11 @@
 #!/bin/bash
 
 check_dependencies(){
-    #Declare list of dependencies
+    #Declare list of dependencies 
     declare -Ag deps=(
         [tmux]='tmux'
+        [curl]='curl'
+        [fzf]='fzf'
     )
 
     #Declare list of package managers and their usages
