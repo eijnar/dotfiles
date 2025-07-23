@@ -2,12 +2,13 @@
     "layer": "top",
     "position": "top",
     "height": 24,
-    "modules-left": ["hyprland/workspaces", "sway/mode", "custom/spotify"],
+    "output": "DP-1",
+    "modules-left": ["hyprland/workspaces", "custom/spotify"],
     "modules-center": ["clock"],
     "modules-right": ["pulseaudio", "network", "cpu", "memory", "battery", "tray"],
     "sway/workspaces": {
         "disable-scroll": true,
-        "all-outputs": false,
+        "all-outputs": true,
         "format": "{icon}",
         "format-icons": {
             "1:web": "",
