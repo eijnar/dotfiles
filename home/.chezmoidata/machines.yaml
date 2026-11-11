@@ -17,7 +17,7 @@ machines:
     desktop: false       # GUI home machine: Hack Nerd Font, whitelight
     monitors: false      # monitor_on/off/toggle (strumpdator's monitor layout)
     focusrite: false     # Scarlett 4i4: PipeWire split + pro-audio lock
-    github_yubikey: false  # GitHub SSH via the YubiKey: ~/.ssh/config block, ssh-keygen -K offer
+    github_yubikey: false  # YubiKey SSH keys: setup-yubikey, GitHub block in ~/.ssh/config
     disable_audio_devices: []   # ALSA cards WirePlumber should ignore
   hosts:
     strumpdator:         # home desktop
@@ -30,3 +30,7 @@ machines:
       disable_audio_devices:
         - alsa_card.pci-0000_18_00.1
         - alsa_card.pci-0000_03_00.1
+    strumptop:           # home laptop
+      morbit: true
+      ssh_agent: true
+      github_yubikey: true
