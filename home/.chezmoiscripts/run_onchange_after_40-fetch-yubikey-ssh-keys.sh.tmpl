@@ -1,0 +1,28 @@
+{{- if (includeTemplate "machine.json" . | fromJson).github_yubikey -}}
+#!/usr/bin/env bash
+# Offers to fetch the YubiKey's SSH keys (ssh-keygen -K) when the GitHub key
+# file is missing, e.g. on a new machine. chezmoi runs it again if the file
+# disappears:
+#   GitHub key present: {{ if stat (joinPath .chezmoi.homeDir ".ssh/id_ed25519_sk_rk_github") }}yes{{ else }}no{{ end }}
+set -euo pipefail
+
+key=~/.ssh/id_ed25519_sk_rk_github
+
+if [[ -f $key ]]; then
+  exit 0
+fi
+if ! { true </dev/tty; } 2>/dev/null; then
+  echo "dotfiles: no GitHub SSH key yet; plug in the YubiKey and run: cd ~/.ssh && ssh-keygen -K"
+  exit 0
+fi
+
+read -r -p "dotfiles: fetch the SSH keys from your YubiKey now (PIN, then the passphrase from Bitwarden)? [y/N] " answer </dev/tty
+if [[ $answer == [yY]* ]]; then
+  mkdir -p ~/.ssh
+  chmod 700 ~/.ssh
+  (cd ~/.ssh && ssh-keygen -K) </dev/tty ||
+    echo "dotfiles: ssh-keygen -K failed; run it later: cd ~/.ssh && ssh-keygen -K" >&2
+else
+  echo "dotfiles: later: cd ~/.ssh && ssh-keygen -K"
+fi
+{{- end }}

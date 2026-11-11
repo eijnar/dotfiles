@@ -20,3 +20,8 @@
 {{- if not $m.desktop }}
 .local/bin/whitelight
 {{- end }}
+
+{{- /* Work machines never get anything under ~/.ssh from this repo. */}}
+{{- if not $m.github_yubikey }}
+.ssh
+{{- end }}

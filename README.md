@@ -77,6 +77,7 @@ work machines.
 | `whitelight`, Hack Nerd Font | ✓ | |
 | ssh-agent user service | ✓ | |
 | morbit in zsh, morbit-setup offer | ✓ | |
+| GitHub SSH via the YubiKey (`~/.ssh/config` block, `ssh-keygen -K` offer) | ✓ | |
 
 To add a home machine, add it under `hosts` with the flags that differ from
 `default`, push, and run `chezmoi init --apply eijnar` on it. Never list work
@@ -118,7 +119,23 @@ morbit with a one-line note and `morbit-*` work in bash). Settings such as
 `MORBIT_SSH_BASTION` go in `~/.config/shell/local.d/morbit.sh`: a line after the
 block in `~/.bashrc` is never seen by zsh. You're offered a morbit-setup run
 (SSH config, jump hosts) once the infrastructure repo is checked out at
-`~/Projects/infrastructure`. No SSH configuration is stored here.
+`~/Projects/infrastructure`. The SSH config for the servers comes from
+morbit-setup, not from here.
+
+## GitHub with the YubiKey
+
+On machines with `github_yubikey: true`, git talks to GitHub with a FIDO2 key
+that lives on the YubiKey (`ssh:github`, separate from the morbit keys):
+
+- The first apply offers `cd ~/.ssh && ssh-keygen -K`. It asks for the
+  YubiKey PIN, then a passphrase per key file: use the one in Bitwarden.
+- `~/.ssh/config` gets one marked block (`# >>> dotfiles: github …`) pointing
+  at `~/.ssh/id_ed25519_sk_rk_github` with `AddKeysToAgent yes`. Nothing else
+  in that file is touched. You type the passphrase once per login, then
+  every push needs a touch.
+- On a server: `ssh -A server` for that session, and touch the key at your
+  desk when git asks. Servers that only pull get their own read-only deploy key.
+- Work machines never get anything under `~/.ssh` from this repo.
 
 ## Layout
 
@@ -133,6 +150,7 @@ home/
   .chezmoiscripts/           packages, ssh-agent, PipeWire restart, morbit offer
   modify_private_dot_bashrc  ~/.bashrc (managed part + what other tools add)
   create_private_dot_bash_profile  ~/.bash_profile, only if missing
+  private_dot_ssh/modify_private_config  the GitHub block in ~/.ssh/config
   dot_zshrc.tmpl, dot_tmux.conf.tmpl, dot_vimrc, dot_gitconfig.tmpl, …
 archive/hyprland/            old Hyprland/waybar/kitty/foot/wpaperd configs (not installed)
 ```

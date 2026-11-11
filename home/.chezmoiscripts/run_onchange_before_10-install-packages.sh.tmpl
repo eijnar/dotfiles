@@ -6,6 +6,7 @@
 {{- $pkgs := .packages.base }}
 {{- if $m.desktop }}{{ $pkgs = concat $pkgs .packages.desktop }}{{ end }}
 {{- if $m.focusrite }}{{ $pkgs = concat $pkgs .packages.focusrite }}{{ end }}
+{{- if $m.github_yubikey }}{{ $pkgs = concat $pkgs .packages.github_yubikey }}{{ end }}
 {{- $pkgs = $pkgs | uniq | sortAlpha }}
 # packages: {{ $pkgs | join " " }}
 set -euo pipefail

@@ -20,6 +20,9 @@ packages:
     - gtk3              # whitelight
     - python-gobject    # whitelight
     - ttf-hack-nerd     # Nerd Font symbols for starship and tmux
+  github_yubikey:
+    - libfido2          # FIDO2 SSH keys (ed25519-sk); only optional for openssh
+    - yubikey-manager   # ykman
   focusrite:
     - pipewire
     - pipewire-pulse
