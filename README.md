@@ -8,7 +8,7 @@ My shell, tmux, vim and git setup, plus per-machine extras, managed with
 ```sh
 # Arch (also WSL), logged in as yourself with sudo:
 sudo pacman -Syu --needed chezmoi git
-chezmoi init --apply eijnar        # add --branch chezmoi until it's merged to main
+chezmoi init --apply eijnar
 exec bash -l                       # or open a new terminal: you land in zsh
 ```
 
