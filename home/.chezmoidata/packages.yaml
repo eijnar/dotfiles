@@ -17,6 +17,7 @@ packages:
     - zsh-completions
     - zsh-syntax-highlighting
   desktop:
+    - alacritty
     - gtk3              # whitelight
     - python-gobject    # whitelight
     - ttf-hack-nerd     # Nerd Font symbols for starship and tmux

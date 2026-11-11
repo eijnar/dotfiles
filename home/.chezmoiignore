@@ -19,6 +19,7 @@
 
 {{- if not $m.desktop }}
 .local/bin/whitelight
+.config/alacritty
 {{- end }}
 
 {{- /* Work machines never get anything under ~/.ssh from this repo. */}}

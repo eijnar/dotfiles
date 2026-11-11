@@ -81,6 +81,7 @@ work machines.
 | WirePlumber: disable unused sound cards | ✓ | | |
 | `monitor_on` / `monitor_off` / `monitor-toggle` | ✓ | | |
 | `whitelight`, Hack Nerd Font | ✓ | | |
+| Alacritty: no border, padding, Hack Nerd Font, Nord colours | ✓ | | |
 | ssh-agent user service | ✓ | ✓ | |
 | morbit in zsh, morbit-setup offer | ✓ | ✓ | |
 | YubiKey SSH keys: `setup-yubikey`, GitHub block in `~/.ssh/config` | ✓ | ✓ | |

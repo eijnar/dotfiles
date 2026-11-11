@@ -52,6 +52,9 @@ set-option -g status-position bottom
 # Colors and terminal settings
 set -g default-terminal "tmux-256color"
 set -ga terminal-overrides ",*256col*:smcup@:rmcup@:Tc"
+# Alacritty reports TERM=alacritty, which the override above misses: tell tmux
+# it does 24-bit colour, so colours inside tmux are not cut down to 256.
+set -as terminal-features ",alacritty*:RGB"
 
 
 ######################
