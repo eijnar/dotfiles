@@ -14,7 +14,8 @@ machines:
     zsh: true            # interactive bash hands over to zsh (login shell stays bash)
     morbit: false        # load morbit in zsh, offer to run morbit-setup
     ssh_agent: false     # enable OpenSSH's ssh-agent user service (ssh-agent.socket)
-    desktop: false       # GUI home machine: Hack Nerd Font, whitelight
+    desktop: false       # GNOME home machine: Alacritty, Hack Nerd Font, Super+Enter, GNOME extensions
+    whitelight: false    # whitelight, the video-call fill light
     monitors: false      # monitor_on/off/toggle (strumpdator's monitor layout)
     focusrite: false     # Scarlett 4i4: PipeWire split + pro-audio lock
     github_yubikey: false  # YubiKey SSH keys: setup-yubikey, GitHub block in ~/.ssh/config
@@ -24,13 +25,15 @@ machines:
       morbit: true
       ssh_agent: true
       desktop: true
+      whitelight: true
       monitors: true
       focusrite: true
       github_yubikey: true
       disable_audio_devices:
         - alsa_card.pci-0000_18_00.1
         - alsa_card.pci-0000_03_00.1
-    strumptop:           # home laptop
-      morbit: true
+    strumptop:           # home laptop (GNOME): like the desktop, minus whitelight,
+      morbit: true       # the monitor scripts and the Focusrite
       ssh_agent: true
+      desktop: true
       github_yubikey: true

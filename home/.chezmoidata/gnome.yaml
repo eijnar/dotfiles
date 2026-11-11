@@ -1,0 +1,11 @@
+# GNOME Shell extensions on desktop machines (desktop: true), installed and
+# enabled by .chezmoiscripts/run_onchange_after_95-gnome-extensions.sh. Their
+# settings are .chezmoitemplates/gnome/<name>.ini: a `dconf dump` of <dconf>.
+gnome:
+  extensions:
+    - uuid: rounded-window-corners@fxgn
+      name: rounded-window-corners-reborn
+      dconf: /org/gnome/shell/extensions/rounded-window-corners-reborn/
+    - uuid: blur-my-shell@aunetx
+      name: blur-my-shell
+      dconf: /org/gnome/shell/extensions/blur-my-shell/

@@ -22,7 +22,5 @@ set undolevels=1000
 syntax on
 filetype plugin indent on
 
-" Nord colorscheme: chezmoi clones it into ~/.vim/pack/plugins/opt/nord-vim
-" (.chezmoiexternal.toml.tmpl). Silent, so vim still starts without it.
-silent! packadd! nord-vim
-silent! colorscheme nord
+" Colours: vim's defaults. Built-in schemes to try with :colorscheme are
+" habamax, sorbet, retrobox, wildcharm and unokai.
