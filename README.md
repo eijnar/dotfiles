@@ -3,6 +3,18 @@
 My shell, tmux, vim and git setup, plus per-machine extras, managed with
 [chezmoi](https://www.chezmoi.io/). Arch Linux everywhere, including WSL.
 
+## Quick setup
+
+```sh
+# Arch (also WSL), logged in as yourself with sudo:
+sudo pacman -Syu --needed chezmoi git
+chezmoi init --apply eijnar        # add --branch chezmoi until it's merged to main
+exec bash -l                       # or open a new terminal: you land in zsh
+```
+
+Machine already has configs you care about? Run `chezmoi init eijnar`, then
+`chezmoi diff`, then `chezmoi apply`. Later: `chezmoi update` pulls and applies.
+
 ## New machine
 
 ```sh
