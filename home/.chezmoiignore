@@ -24,4 +24,5 @@
 {{- /* Work machines never get anything under ~/.ssh from this repo. */}}
 {{- if not $m.github_yubikey }}
 .ssh
+.local/bin/setup-yubikey
 {{- end }}

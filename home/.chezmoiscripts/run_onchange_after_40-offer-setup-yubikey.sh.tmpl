@@ -1,0 +1,23 @@
+{{- if (includeTemplate "machine.json" . | fromJson).github_yubikey -}}
+#!/usr/bin/env bash
+# First setup: offers to run setup-yubikey (fetch the YubiKey's SSH keys, test
+# GitHub) when the GitHub key file is missing. Run setup-yubikey yourself any
+# time. chezmoi runs this offer again if the key file disappears:
+#   GitHub key present: {{ if stat (joinPath .chezmoi.homeDir ".ssh/id_ed25519_sk_rk_github") }}yes{{ else }}no{{ end }}
+set -euo pipefail
+
+if [[ -f ~/.ssh/id_ed25519_sk_rk_github ]]; then
+  exit 0
+fi
+if ! { true </dev/tty; } 2>/dev/null; then
+  echo "dotfiles: set up the YubiKey later with: setup-yubikey"
+  exit 0
+fi
+
+read -r -p "dotfiles: set up the YubiKey (SSH keys, GitHub) now? [y/N] " answer </dev/tty
+if [[ $answer == [yY]* ]]; then
+  ~/.local/bin/setup-yubikey </dev/tty || echo "dotfiles: run setup-yubikey again when you're ready" >&2
+else
+  echo "dotfiles: run setup-yubikey whenever you're ready"
+fi
+{{- end }}

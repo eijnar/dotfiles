@@ -67,17 +67,17 @@ profile is work-safe: no SSH or morbit, no home hardware, and the git identity
 is asked once. Commits to this repo always use the personal identity, also on
 work machines.
 
-| | strumpdator | default (work, WSL, unknown) |
-|---|---|---|
-| zsh (via bash), starship, fastfetch, tmux, vim, git | ✓ | ✓ |
-| `jaktkollen` | ✓ | ✓ |
-| Scarlett 4i4 PipeWire split + pro-audio lock | ✓ | |
-| WirePlumber: disable unused sound cards | ✓ | |
-| `monitor_on` / `monitor_off` / `monitor-toggle` | ✓ | |
-| `whitelight`, Hack Nerd Font | ✓ | |
-| ssh-agent user service | ✓ | |
-| morbit in zsh, morbit-setup offer | ✓ | |
-| GitHub SSH via the YubiKey (`~/.ssh/config` block, `ssh-keygen -K` offer) | ✓ | |
+| | strumpdator (desktop) | strumptop (laptop) | default (work, WSL, unknown) |
+|---|---|---|---|
+| zsh (via bash), starship, fastfetch, tmux, vim, git | ✓ | ✓ | ✓ |
+| `jaktkollen` | ✓ | ✓ | ✓ |
+| Scarlett 4i4 PipeWire split + pro-audio lock | ✓ | | |
+| WirePlumber: disable unused sound cards | ✓ | | |
+| `monitor_on` / `monitor_off` / `monitor-toggle` | ✓ | | |
+| `whitelight`, Hack Nerd Font | ✓ | | |
+| ssh-agent user service | ✓ | ✓ | |
+| morbit in zsh, morbit-setup offer | ✓ | ✓ | |
+| YubiKey SSH keys: `setup-yubikey`, GitHub block in `~/.ssh/config` | ✓ | ✓ | |
 
 To add a home machine, add it under `hosts` with the flags that differ from
 `default`, push, and run `chezmoi init --apply eijnar` on it. Never list work
@@ -127,8 +127,12 @@ morbit-setup, not from here.
 On machines with `github_yubikey: true`, git talks to GitHub with a FIDO2 key
 that lives on the YubiKey (`ssh:github`, separate from the morbit keys):
 
-- The first apply offers `cd ~/.ssh && ssh-keygen -K`. It asks for the
-  YubiKey PIN, then a passphrase per key file: use the one in Bitwarden.
+- `setup-yubikey` fetches the SSH keys stored on the YubiKey into `~/.ssh`
+  (GitHub plus the morbit keys morbit-setup needs) and tests GitHub. It asks
+  for the YubiKey PIN, then a passphrase per key file: for GitHub, the one in
+  Bitwarden. The first apply offers to run it; run it again any time (e.g. the
+  YubiKey wasn't plugged in). Key files already in `~/.ssh` are never
+  overwritten.
 - `~/.ssh/config` gets one marked block (`# >>> dotfiles: github …`) pointing
   at `~/.ssh/id_ed25519_sk_rk_github` with `AddKeysToAgent yes`. Nothing else
   in that file is touched. You type the passphrase once per login, then

@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+# setup-yubikey — fetch the SSH keys stored on the YubiKey (FIDO2 resident
+# keys: GitHub, morbit-admin, morbit-user) into ~/.ssh and check that GitHub
+# accepts the GitHub one. Safe to run again: key files already in ~/.ssh are
+# kept, never overwritten. Managed by chezmoi (github.com/eijnar/dotfiles).
+set -euo pipefail
+
+github_key=~/.ssh/id_ed25519_sk_rk_github
+
+for cmd in ssh-keygen:openssh fido2-token:libfido2; do
+  if ! command -v "${cmd%%:*}" >/dev/null 2>&1; then
+    echo "setup-yubikey: ${cmd%%:*} not found; install it: sudo pacman -S --needed ${cmd#*:}" >&2
+    exit 1
+  fi
+done
+
+if [[ -z $(fido2-token -L 2>/dev/null) ]]; then
+  echo "setup-yubikey: no YubiKey found. Plug it in and run setup-yubikey again." >&2
+  exit 1
+fi
+
+mkdir -p ~/.ssh
+chmod 700 ~/.ssh
+tmp=$(mktemp -d ~/.ssh/.setup-yubikey.XXXXXX)
+trap 'rm -rf "$tmp"' EXIT
+
+echo "Fetching the SSH keys from the YubiKey. Enter its PIN, then a passphrase"
+echo "for each key file (for the GitHub key: the one in Bitwarden)."
+(cd "$tmp" && ssh-keygen -K)
+
+added=() kept=()
+for f in "$tmp"/id_*_sk_rk_*; do
+  [[ -e $f ]] || continue
+  name=${f##*/}
+  if [[ -e ~/.ssh/$name ]]; then
+    kept+=("$name")
+  else
+    [[ $name == *.pub ]] || chmod 600 -- "$f"
+    mv -- "$f" ~/.ssh/
+    added+=("$name")
+  fi
+done
+if ((${#added[@]})); then echo "Added to ~/.ssh: ${added[*]}"; fi
+if ((${#kept[@]})); then echo "Already in ~/.ssh, kept as they were: ${kept[*]}"; fi
+
+if [[ ! -e $github_key ]]; then
+  echo "setup-yubikey: this YubiKey has no GitHub key (ssh:github)." >&2
+  exit 1
+fi
+if ! ssh -G github.com 2>/dev/null | grep -q "identityfile .*${github_key##*/}\$"; then
+  echo "setup-yubikey: ~/.ssh/config doesn't use the GitHub key yet; run: chezmoi apply" >&2
+  exit 1
+fi
+
+answer=n
+if { true </dev/tty; } 2>/dev/null; then
+  read -r -p "Test GitHub now (passphrase, then touch the YubiKey)? [Y/n] " answer </dev/tty || answer=n
+fi
+if [[ $answer != [nN]* ]]; then
+  # GitHub exits 1 even on success ("does not provide shell access").
+  if ssh -T git@github.com 2>&1 | tee /dev/stderr | grep -q 'successfully authenticated'; then
+    echo "setup-yubikey: GitHub works with the YubiKey."
+  else
+    echo "setup-yubikey: GitHub didn't accept the key (see above)." >&2
+    exit 1
+  fi
+fi
