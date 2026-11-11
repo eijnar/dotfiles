@@ -1,0 +1,17 @@
+{{- $m := includeTemplate "machine.json" . | fromJson -}}
+# Sound cards WirePlumber should ignore on this machine (e.g. GPU HDMI audio).
+# Managed by chezmoi; the list is disable_audio_devices in .chezmoidata/machines.yaml.
+monitor.alsa.rules = [
+{{- range $m.disable_audio_devices }}
+  {
+    matches = [
+      { device.name = {{ . | quote }} }
+    ]
+    actions = {
+      update-props = {
+        device.disabled = true
+      }
+    }
+  }
+{{- end }}
+]

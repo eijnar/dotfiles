@@ -1,0 +1,27 @@
+{{- /* Files only some machines get; flags live in .chezmoidata/machines.yaml. */ -}}
+{{- $m := includeTemplate "machine.json" . | fromJson -}}
+
+{{- if not $m.focusrite }}
+.config/pipewire/pipewire.conf.d/60-scarlett-4i4.conf
+.config/wireplumber/wireplumber.conf.d/54-scarlett-pro-audio-only.conf
+.config/alsa-card-profile
+{{- end }}
+
+{{- if not $m.disable_audio_devices }}
+.config/wireplumber/wireplumber.conf.d/52-disable-devices.conf
+{{- end }}
+
+{{- if not $m.monitors }}
+.local/bin/monitor_on
+.local/bin/monitor_off
+.local/bin/monitor-toggle
+{{- end }}
+
+{{- if not $m.desktop }}
+.local/bin/whitelight
+{{- end }}
+
+{{- /* Work machines never get anything under ~/.ssh from this repo. */}}
+{{- if not $m.github_yubikey }}
+.ssh
+{{- end }}

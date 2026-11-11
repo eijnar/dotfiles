@@ -1,0 +1,26 @@
+{{- $m := includeTemplate "machine.json" . | fromJson -}}
+# ~/.gitconfig — managed by chezmoi (github.com/eijnar/dotfiles).
+# Machine-local settings belong in ~/.config/git/local (not in the repo).
+{{- if $m.known }}
+[user]
+	name = {{ .git.name }}
+	email = {{ .git.email }}
+{{- else if and (hasKey . "git_name") (hasKey . "git_email") }}
+[user]
+	name = {{ .git_name }}
+	email = {{ .git_email }}
+{{- else }}
+# No git identity for this machine yet: run `chezmoi init` to set it.
+{{- end }}
+[credential "https://github.com"]
+	helper =
+	helper = !/usr/bin/gh auth git-credential
+[credential "https://gist.github.com"]
+	helper =
+	helper = !/usr/bin/gh auth git-credential
+[include]
+	path = ~/.config/git/local
+# Commits to the dotfiles repo itself always use the personal identity, also on
+# work machines (the repo is public).
+[includeIf "gitdir:{{ .chezmoi.workingTree }}/"]
+	path = ~/.config/git/dotfiles

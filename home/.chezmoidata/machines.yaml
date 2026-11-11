@@ -1,0 +1,32 @@
+# Machine profiles, matched on the short hostname, i.e. the part before the first
+# dot of `uname -n` (chezmoi: `chezmoi execute-template "{{ .chezmoi.hostname }}"`).
+#
+# A machine that isn't listed here (including every WSL install) gets
+# `default`: the work-safe profile. It has no SSH/morbit and no home hardware,
+# and its git identity is asked once and stored only on that machine. Never
+# list work machines here: this repo is public.
+#
+# A listed host only needs the flags that differ from `default`.
+# To add a home machine: add it under `hosts`, push, then on that machine run
+# `chezmoi init --apply` (first time) or `chezmoi update`.
+machines:
+  default:
+    zsh: true            # interactive bash hands over to zsh (login shell stays bash)
+    morbit: false        # load morbit in zsh, offer to run morbit-setup
+    ssh_agent: false     # enable OpenSSH's ssh-agent user service (ssh-agent.socket)
+    desktop: false       # GUI home machine: Hack Nerd Font, whitelight
+    monitors: false      # monitor_on/off/toggle (strumpdator's monitor layout)
+    focusrite: false     # Scarlett 4i4: PipeWire split + pro-audio lock
+    github_yubikey: false  # GitHub SSH via the YubiKey: ~/.ssh/config block, ssh-keygen -K offer
+    disable_audio_devices: []   # ALSA cards WirePlumber should ignore
+  hosts:
+    strumpdator:         # home desktop
+      morbit: true
+      ssh_agent: true
+      desktop: true
+      monitors: true
+      focusrite: true
+      github_yubikey: true
+      disable_audio_devices:
+        - alsa_card.pci-0000_18_00.1
+        - alsa_card.pci-0000_03_00.1

@@ -1,0 +1,24 @@
+{{- /* chezmoi:modify-template */ -}}
+{{- /*
+  ~/.ssh/config: only the marked "dotfiles: github" block below is managed.
+  It is replaced where it is, or appended when missing; every other line
+  (your own hosts, morbit-setup's blocks) is left exactly as it was.
+  Only on machines with github_yubikey: true (see .chezmoiignore).
+*/ -}}
+{{- $block := `# >>> dotfiles: github (managed by chezmoi) >>>
+# GitHub over SSH with the YubiKey (FIDO2, resident). New machine:
+# cd ~/.ssh && ssh-keygen -K   (YubiKey PIN, then the passphrase from Bitwarden)
+Host *github.com
+	IdentityFile ~/.ssh/id_ed25519_sk_rk_github
+	AddKeysToAgent yes
+# <<< dotfiles: github <<<
+` -}}
+{{- $re := "(?ms)^# >>> dotfiles: github [^\n]*>>>[ \t\r]*\n.*?^# <<< dotfiles: github <<<[^\n]*(?:\n|\\z)" -}}
+{{- $in := .chezmoi.stdin -}}
+{{- if regexMatch $re $in -}}
+{{-   regexReplaceAllLiteral $re $in $block -}}
+{{- else if $in -}}
+{{-   $in -}}{{- if not (hasSuffix "\n" $in) }}{{ "\n" }}{{ end }}{{ "\n" }}{{ $block -}}
+{{- else -}}
+{{-   $block -}}
+{{- end -}}

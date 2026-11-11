@@ -1,0 +1,21 @@
+{{- $m := includeTemplate "machine.json" . | fromJson -}}
+{{- if or $m.focusrite $m.disable_audio_devices -}}
+#!/usr/bin/env bash
+# Restarts PipeWire so changes to the audio configs take effect: the Scarlett
+# split devices, its pro-audio lock and the disabled sound cards. chezmoi runs
+# it when one of these files changes (hashes below). Audio drops for a second.
+#   {{ include "private_dot_config/pipewire/pipewire.conf.d/60-scarlett-4i4.conf" | sha256sum }}
+#   {{ include "private_dot_config/wireplumber/wireplumber.conf.d/54-scarlett-pro-audio-only.conf" | sha256sum }}
+#   {{ include "private_dot_config/alsa-card-profile/mixer/profile-sets/scarlett-pro-audio-only.conf" | sha256sum }}
+#   {{ include "private_dot_config/wireplumber/wireplumber.conf.d/52-disable-devices.conf.tmpl" | sha256sum }} {{ $m.disable_audio_devices | toJson | sha256sum }}
+set -euo pipefail
+
+if ! systemctl --user show-environment >/dev/null 2>&1; then
+  echo "dotfiles: no systemd user session, not restarting PipeWire" >&2
+  exit 0
+fi
+if systemctl --user is-active --quiet pipewire.service; then
+  echo "dotfiles: restarting PipeWire to load the audio config"
+  systemctl --user restart wireplumber.service pipewire.service pipewire-pulse.service
+fi
+{{- end }}

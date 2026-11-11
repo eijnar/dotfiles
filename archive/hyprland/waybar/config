@@ -2,7 +2,7 @@
     "layer": "top",
     "position": "top",
     "height": 24,
-    "output": "DP-1",
+    "output": "DP-2",
     "modules-left": ["hyprland/workspaces", "custom/spotify"],
     "modules-center": ["clock"],
     "modules-right": ["pulseaudio", "network", "cpu", "memory", "battery", "tray"],

@@ -1,0 +1,28 @@
+" ~/.vimrc — managed by chezmoi (github.com/eijnar/dotfiles)
+
+" Keep vim's defaults (mouse, scrolloff, last-position jump, ...), which a
+" ~/.vimrc otherwise switches off; the settings below go on top.
+unlet! skip_defaults_vim
+source $VIMRUNTIME/defaults.vim
+
+set hidden
+set nowrap
+set tabstop=4
+set shiftwidth=4
+set softtabstop=4
+set showmatch
+set ignorecase
+set smartcase
+set smarttab
+set incsearch
+
+set history=1000
+set undolevels=1000
+
+syntax on
+filetype plugin indent on
+
+" Nord colorscheme: chezmoi clones it into ~/.vim/pack/plugins/opt/nord-vim
+" (.chezmoiexternal.toml.tmpl). Silent, so vim still starts without it.
+silent! packadd! nord-vim
+silent! colorscheme nord

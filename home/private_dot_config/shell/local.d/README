@@ -1,0 +1,8 @@
+Machine-local shell settings, not stored in the dotfiles repo.
+
+Every *.sh file in this directory is sourced by both bash and zsh (interactive
+shells, after the shared settings), so keep them to plain POSIX sh: exports,
+aliases, simple functions.
+
+Use it for anything that must not be in the public repo or only applies to
+this machine, e.g. work-specific settings.

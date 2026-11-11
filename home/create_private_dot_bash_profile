@@ -1,0 +1,5 @@
+#
+# ~/.bash_profile — created by chezmoi only if missing (never overwritten)
+#
+
+[[ -f ~/.bashrc ]] && . ~/.bashrc

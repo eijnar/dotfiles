@@ -1,0 +1,13 @@
+{{- /* Plugins chezmoi clones and keeps up to date (`chezmoi update` pulls them weekly). */ -}}
+{{- range .tmux.plugins }}
+[".tmux/plugins/{{ base . }}"]
+    type = "git-repo"
+    url = "https://github.com/{{ . }}.git"
+    refreshPeriod = "168h"
+{{- end }}
+
+# Nord colorscheme for vim, loaded with `packadd! nord-vim` in ~/.vimrc.
+[".vim/pack/plugins/opt/nord-vim"]
+    type = "git-repo"
+    url = "https://github.com/nordtheme/vim.git"
+    refreshPeriod = "168h"

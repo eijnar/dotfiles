@@ -1,0 +1,29 @@
+# Arch packages installed by .chezmoiscripts/run_onchange_before_10-install-packages.sh.
+# `base` goes on every machine; the others follow the flags in machines.yaml.
+packages:
+  base:
+    - chezmoi
+    - fastfetch
+    - fzf
+    - git
+    - github-cli        # git credential helper, jaktkollen
+    - less              # git's pager; not part of Arch's base
+    - openssh
+    - starship
+    - tmux
+    - vim
+    - zsh
+    - zsh-autosuggestions
+    - zsh-completions
+    - zsh-syntax-highlighting
+  desktop:
+    - gtk3              # whitelight
+    - python-gobject    # whitelight
+    - ttf-hack-nerd     # Nerd Font symbols for starship and tmux
+  github_yubikey:
+    - libfido2          # FIDO2 SSH keys (ed25519-sk); only optional for openssh
+    - yubikey-manager   # ykman
+  focusrite:
+    - pipewire
+    - pipewire-pulse
+    - wireplumber

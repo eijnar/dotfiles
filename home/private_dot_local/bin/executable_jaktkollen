@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# jaktkollen — personal ops shortcuts. Lives at ~/.local/bin/jaktkollen.
+#
+# Cuts releases that the GitHub Actions workflows pick up:
+#   beta-release [notes]   → tags beta-YYYY-MM-DD-N as a pre-release on main
+#                            and lets api.yml + frontend.yml deploy to beta.
+#
+# Auth: requires `gh auth login` to have happened on this machine.
+
+set -euo pipefail
+
+REPO="${JAKTKOLLEN_REPO:-MorbitHQ/jaktkoll}"   # override via JAKTKOLLEN_REPO env
+
+usage() {
+    cat <<EOF
+usage: jaktkollen <command> [args]
+
+commands:
+  beta-release [notes]   Cut a beta-YYYY-MM-DD-N pre-release on $REPO.
+                         The api + frontend workflows fire automatically and
+                         deploy to the beta tier. Default notes: "Beta cut".
+
+  runs                   List the most recent workflow runs on $REPO.
+
+  help                   Show this message.
+
+env:
+  JAKTKOLLEN_REPO        Override the target repo (default: $REPO).
+EOF
+}
+
+next_beta_tag() {
+    local today last
+    today=$(date +%Y-%m-%d)
+    last=$(gh -R "$REPO" release list --limit 200 --json tagName --jq '.[].tagName' \
+        | grep "^beta-${today}-" \
+        | sed "s/^beta-${today}-//" \
+        | sort -n | tail -1 || true)
+    echo "beta-${today}-$(( ${last:-0} + 1 ))"
+}
+
+cmd_beta_release() {
+    local notes="${1:-Beta cut}"
+    local tag
+    tag=$(next_beta_tag)
+
+    printf 'Repo:  %s\nTag:   %s\nNotes: %s\n\n' "$REPO" "$tag" "$notes"
+    read -r -p "Create pre-release? [y/N] " reply
+    [[ "$reply" =~ ^[Yy]$ ]] || { echo "aborted"; exit 1; }
+
+    gh -R "$REPO" release create "$tag" \
+        --target main \
+        --prerelease \
+        --title "Beta $tag" \
+        --notes "$notes"
+
+    printf '\nReleased. Recent workflow runs:\n'
+    gh -R "$REPO" run list --limit 5
+    printf '\nWatch one: gh -R %s run watch <run-id>\n' "$REPO"
+}
+
+cmd_runs() {
+    gh -R "$REPO" run list --limit 10
+}
+
+case "${1:-help}" in
+    beta-release)    shift; cmd_beta_release "$@" ;;
+    runs)            shift; cmd_runs "$@" ;;
+    help|-h|--help)  usage ;;
+    *)               printf 'unknown command: %s\n\n' "$1" >&2; usage; exit 2 ;;
+esac
