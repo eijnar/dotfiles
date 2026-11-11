@@ -14,6 +14,9 @@
 # Super+drag, resize it with Super+middle-drag (or Alt+F8), maximize with
 # Super+Up.
 decorations = "None"
+# Opens at 16:9: Hack Nerd Font cells are 9x18 px (at the default size and
+# scale 1), so 122x34 cells plus the padding make a 1118x628 px window.
+dimensions = { columns = 122, lines = 34 }
 padding = { x = 10, y = 8 }
 # Spread the pixels left over after fitting whole cells evenly around the text.
 dynamic_padding = true
