@@ -1,0 +1,9 @@
+# Options set in /etc/pacman.conf's [options] section on every machine
+# (.chezmoiscripts/run_onchange_before_05-pacman-conf.sh). An empty value
+# means a plain flag. Other lines in pacman.conf are left alone.
+pacman:
+  options:
+    Color: ""              # coloured output
+    ILoveCandy: ""         # Pac-Man progress bar
+    ParallelDownloads: "10"
+    VerbosePkgLists: ""    # upgrade table with old/new versions and sizes

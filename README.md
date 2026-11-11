@@ -28,12 +28,17 @@ That clones this repo to `~/.local/share/chezmoi` and sets the machine up:
 
 1. **Asks for a git identity, on work machines only.** It's stored in that
    machine's `~/.config/chezmoi/chezmoi.toml`, never in this repo.
-2. **Installs the packages** in [`packages.yaml`](home/.chezmoidata/packages.yaml),
+2. **Sets pacman options** in `/etc/pacman.conf` from
+   [`pacman.yaml`](home/.chezmoidata/pacman.yaml): colour, 10 parallel
+   downloads, the old/new version table and the Pac-Man progress bar. Only
+   those lines change, and sudo is only asked for when one has to. Checked on
+   every apply.
+3. **Installs the packages** in [`packages.yaml`](home/.chezmoidata/packages.yaml),
    only the missing ones. This needs sudo. Skip it with
    `DOTFILES_SKIP_PACKAGES=1 chezmoi apply`.
-3. **Writes the configs**, and clones the tmux plugins and the vim
+4. **Writes the configs**, and clones the tmux plugins and the vim
    colorscheme.
-4. **Runs the per-machine setup**: the ssh-agent user service, a PipeWire
+5. **Runs the per-machine setup**: the ssh-agent user service, a PipeWire
    restart for the audio config, and the morbit-setup offer.
 
 Existing files are overwritten: back up your current `~/.zshrc`,
@@ -71,6 +76,7 @@ work machines.
 |---|---|---|---|
 | zsh (via bash), starship, fastfetch, tmux, vim, git | ✓ | ✓ | ✓ |
 | `jaktkollen` | ✓ | ✓ | ✓ |
+| pacman.conf: colour, parallel downloads, version table | ✓ | ✓ | ✓ |
 | Scarlett 4i4 PipeWire split + pro-audio lock | ✓ | | |
 | WirePlumber: disable unused sound cards | ✓ | | |
 | `monitor_on` / `monitor_off` / `monitor-toggle` | ✓ | | |
@@ -147,11 +153,11 @@ that lives on the YubiKey (`ssh:github`, separate from the morbit keys):
 .chezmoiroot                 chezmoi's source is in home/
 home/
   .chezmoi.toml.tmpl         init: git identity on unlisted machines
-  .chezmoidata/              machines.yaml, packages.yaml, tools.yaml (git, tmux plugins)
+  .chezmoidata/              machines.yaml, packages.yaml, pacman.yaml, tools.yaml (git, tmux plugins)
   .chezmoitemplates/         machine.json: this machine's flags
   .chezmoiignore             files only some machines get
   .chezmoiexternal.toml.tmpl tmux plugins, nord-vim
-  .chezmoiscripts/           packages, ssh-agent, PipeWire restart, morbit offer
+  .chezmoiscripts/           pacman.conf, packages, ssh-agent, PipeWire restart, YubiKey and morbit offers
   modify_private_dot_bashrc  ~/.bashrc (managed part + what other tools add)
   create_private_dot_bash_profile  ~/.bash_profile, only if missing
   private_dot_ssh/modify_private_config  the GitHub block in ~/.ssh/config
