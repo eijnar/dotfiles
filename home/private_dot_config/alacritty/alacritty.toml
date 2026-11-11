@@ -17,9 +17,10 @@ decorations = "None"
 padding = { x = 10, y = 8 }
 # Spread the pixels left over after fitting whole cells evenly around the text.
 dynamic_padding = true
-# Slightly see-through. blur = true asks the compositor to blur what's behind;
+# See-through; on GNOME the blur behind it comes from the Blur my Shell
+# extension (darkened there). blur = true asks the compositor itself to blur;
 # Alacritty only speaks KDE's blur protocol, so on GNOME it has no effect (yet).
-opacity = 0.95
+opacity = 0.88
 blur = true
 
 [font]
