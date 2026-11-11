@@ -1,0 +1,31 @@
+{{- if (includeTemplate "machine.json" . | fromJson).desktop -}}
+#!/usr/bin/env bash
+# GNOME keyboard shortcut: Super+Enter opens Alacritty. It is its own custom
+# shortcut (dotfiles-terminal), added to the list next to any others, which are
+# left alone. chezmoi runs this again only when this script changes, so you can
+# change the binding in GNOME Settings afterwards.
+set -euo pipefail
+
+schema=org.gnome.settings-daemon.plugins.media-keys
+path=/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/dotfiles-terminal/
+
+if ! command -v gsettings >/dev/null 2>&1 || ! gsettings list-schemas 2>/dev/null | grep -qx "$schema"; then
+  exit 0   # not GNOME
+fi
+if [[ -z ${DBUS_SESSION_BUS_ADDRESS:-} ]]; then
+  echo "dotfiles: no desktop session; Super+Enter shortcut not set (run chezmoi apply from GNOME)" >&2
+  exit 0
+fi
+
+list=$(gsettings get "$schema" custom-keybindings)
+if [[ $list != *"'$path'"* ]]; then
+  case $list in
+    "@as []"|"[]") list="['$path']" ;;
+    *) list="${list%]}, '$path']" ;;
+  esac
+  gsettings set "$schema" custom-keybindings "$list"
+fi
+gsettings set "$schema.custom-keybinding:$path" name 'Terminal (Alacritty)'
+gsettings set "$schema.custom-keybinding:$path" command 'alacritty'
+gsettings set "$schema.custom-keybinding:$path" binding '<Super>Return'
+{{- end }}

@@ -1,0 +1,40 @@
+# ~/.config/alacritty/alacritty.toml — managed by chezmoi (github.com/eijnar/dotfiles).
+# Edit with `chezmoi edit ~/.config/alacritty/alacritty.toml`; Alacritty
+# reloads it live (window decorations only change in new windows).
+
+[general]
+# Colours: Alacritty's own defaults. To try a theme, uncomment one line; the
+# window recolours as soon as you save. Keep it with `chezmoi re-add`.
+# import = ["~/.config/alacritty/themes/tokyo-night.toml"]
+# import = ["~/.config/alacritty/themes/catppuccin-mocha.toml"]
+# import = ["~/.config/alacritty/themes/gruvbox-dark.toml"]
+
+[window]
+# Just the terminal: no title bar or border. In GNOME, move the window with
+# Super+drag, resize it with Super+middle-drag (or Alt+F8), maximize with
+# Super+Up.
+decorations = "None"
+padding = { x = 10, y = 8 }
+# Spread the pixels left over after fitting whole cells evenly around the text.
+dynamic_padding = true
+
+[font]
+# The Nerd Font variant, so starship's and tmux's icons come from the same font
+# (package ttf-hack-nerd). "Hack Nerd Font Mono" squeezes icons into one cell.
+normal = { family = "Hack Nerd Font", style = "Regular" }
+bold = { family = "Hack Nerd Font", style = "Bold" }
+italic = { family = "Hack Nerd Font", style = "Italic" }
+bold_italic = { family = "Hack Nerd Font", style = "Bold Italic" }
+
+[scrolling]
+history = 50000
+
+[mouse]
+hide_when_typing = true
+
+# Shift+Enter sends ESC + Enter: a newline without submitting, in apps like
+# Claude Code.
+[[keyboard.bindings]]
+key = "Return"
+mods = "Shift"
+chars = "\u001B\r"

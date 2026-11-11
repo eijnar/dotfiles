@@ -46,12 +46,57 @@ bind -n M-Down select-pane -D
 bind -n S-Up swap-pane -s +1
 bind -n S-Down swap-pane -s -1
 
+# Mouse: only scrolling (wheel), clicking a pane to focus it and dragging pane
+# borders to resize. Everything else tmux would do with the mouse is unbound
+# (menus, status-bar clicks, middle-click paste, tmux's own text selection).
+# Select and paste text with the terminal as usual, holding Shift.
+set -g mouse on
+unbind -q -T root C-MouseDown1Status
+unbind -q -T root C-MouseDrag1Empty
+unbind -q -T root C-MouseDrag1Pane
+unbind -q -T root DoubleClick1Pane
+unbind -q -T root TripleClick1Pane
+unbind -q -T root M-MouseDown3Empty
+unbind -q -T root M-MouseDown3Pane
+unbind -q -T root M-MouseDown3Status
+unbind -q -T root M-MouseDown3StatusLeft
+unbind -q -T root M-MouseDrag1Border
+unbind -q -T root M-MouseDrag1Pane
+unbind -q -T root MouseDown1Control7
+unbind -q -T root MouseDown1Control8
+unbind -q -T root MouseDown1Control9
+unbind -q -T root MouseDown1ScrollbarDown
+unbind -q -T root MouseDown1ScrollbarUp
+unbind -q -T root MouseDrag1ScrollbarSlider
+unbind -q -T root MouseDown1Status
+unbind -q -T root MouseDown2Pane
+unbind -q -T root MouseDown3Empty
+unbind -q -T root MouseDown3Pane
+unbind -q -T root MouseDown3Status
+unbind -q -T root MouseDown3StatusLeft
+unbind -q -T root MouseDrag1Pane
+unbind -q -T root WheelUpStatus
+unbind -q -T root WheelDownStatus
+# Scrolling enters copy mode: keep the wheel and click-to-focus there, but no
+# tmux text selection either.
+unbind -q -T copy-mode MouseDrag1Pane
+unbind -q -T copy-mode MouseDragEnd1Pane
+unbind -q -T copy-mode DoubleClick1Pane
+unbind -q -T copy-mode TripleClick1Pane
+unbind -q -T copy-mode-vi MouseDrag1Pane
+unbind -q -T copy-mode-vi MouseDragEnd1Pane
+unbind -q -T copy-mode-vi DoubleClick1Pane
+unbind -q -T copy-mode-vi TripleClick1Pane
+
 # Status bar
 set-option -g status-position bottom
 
 # Colors and terminal settings
 set -g default-terminal "tmux-256color"
 set -ga terminal-overrides ",*256col*:smcup@:rmcup@:Tc"
+# Alacritty reports TERM=alacritty, which the override above misses: tell tmux
+# it does 24-bit colour, so colours inside tmux are not cut down to 256.
+set -as terminal-features ",alacritty*:RGB"
 
 
 ######################
