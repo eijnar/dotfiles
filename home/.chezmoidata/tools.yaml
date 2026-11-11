@@ -11,4 +11,3 @@ tmux:
     - tmux-plugins/tpm
     - tmux-plugins/tmux-sensible
     - erikw/tmux-powerline
-    - nordtheme/tmux

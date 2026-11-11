@@ -36,8 +36,7 @@ That clones this repo to `~/.local/share/chezmoi` and sets the machine up:
 3. **Installs the packages** in [`packages.yaml`](home/.chezmoidata/packages.yaml),
    only the missing ones. This needs sudo. Skip it with
    `DOTFILES_SKIP_PACKAGES=1 chezmoi apply`.
-4. **Writes the configs**, and clones the tmux plugins and the vim
-   colorscheme.
+4. **Writes the configs**, and clones the tmux plugins.
 5. **Runs the per-machine setup**: the ssh-agent user service, a PipeWire
    restart for the audio config, and the morbit-setup offer.
 
@@ -160,7 +159,7 @@ home/
   .chezmoidata/              machines.yaml, packages.yaml, pacman.yaml, tools.yaml (git, tmux plugins)
   .chezmoitemplates/         machine.json: this machine's flags
   .chezmoiignore             files only some machines get
-  .chezmoiexternal.toml.tmpl tmux plugins, nord-vim
+  .chezmoiexternal.toml.tmpl tmux plugins
   .chezmoiscripts/           pacman.conf, packages, ssh-agent, PipeWire restart, YubiKey and morbit offers
   modify_private_dot_bashrc  ~/.bashrc (managed part + what other tools add)
   create_private_dot_bash_profile  ~/.bash_profile, only if missing

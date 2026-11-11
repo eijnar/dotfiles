@@ -17,6 +17,10 @@ decorations = "None"
 padding = { x = 10, y = 8 }
 # Spread the pixels left over after fitting whole cells evenly around the text.
 dynamic_padding = true
+# Slightly see-through. blur = true asks the compositor to blur what's behind;
+# Alacritty only speaks KDE's blur protocol, so on GNOME it has no effect (yet).
+opacity = 0.95
+blur = true
 
 [font]
 # The Nerd Font variant, so starship's and tmux's icons come from the same font
