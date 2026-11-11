@@ -38,7 +38,7 @@ for _, entry in ipairs (config["loopbacks"] and parse1 (config["loopbacks"]) or 
   end
 end
 
--- node id -> list of LocalModule objects; dropping the list unloads them
+-- node id -> list of LocalModule objects
 local active = {}
 
 local function attach_side (name)
@@ -50,6 +50,41 @@ local function attach_side (name)
   return nil
 end
 
+local function create (node)
+  local name = node.properties["node.name"] or ""
+  local side = attach_side (name)
+  if not side or active[node.id] then
+    return
+  end
+
+  local modules = {}
+  for _, lb in ipairs (loopbacks) do
+    if lb.attach == side then
+      local args = lb.args:gsub ("@TARGET@", (name:gsub ("%%", "%%%%")))
+      modules[#modules + 1] = LocalModule ("libpipewire-module-loopback", args, {})
+    end
+  end
+  active[node.id] = modules
+  log:info (string.format ("%s appeared: created %d %s split(s)", name, #modules, side))
+end
+
+local function remove (node)
+  local modules = active[node.id]
+  if not modules then
+    return
+  end
+  active[node.id] = nil
+  for _, module in ipairs (modules) do
+    -- LocalModule:unload () exists since WirePlumber 0.5.16; without it the
+    -- module unloads when it is garbage collected, which WirePlumber does
+    -- right after every hook.
+    if module.unload then
+      module:unload ()
+    end
+  end
+  log:info (string.format ("node %d went away: removed its splits", node.id))
+end
+
 SimpleEventHook {
   name = "custom/scarlett-4i4-split/create",
   interests = {
@@ -58,23 +93,7 @@ SimpleEventHook {
     },
   },
   execute = function (event)
-    local node = event:get_subject ()
-    local name = node.properties["node.name"] or ""
-    local side = attach_side (name)
-    if not side or active[node.id] then
-      return
-    end
-
-    local modules = {}
-    for _, lb in ipairs (loopbacks) do
-      if lb.attach == side then
-        -- plain replacement: node names contain no pattern characters to escape
-        local args = lb.args:gsub ("@TARGET@", (name:gsub ("%%", "%%%%")))
-        modules[#modules + 1] = LocalModule ("libpipewire-module-loopback", args, {})
-      end
-    end
-    active[node.id] = modules
-    log:info (string.format ("%s appeared: created %d %s split(s)", name, #modules, side))
+    create (event:get_subject ())
   end
 }:register ()
 
@@ -86,14 +105,19 @@ SimpleEventHook {
     },
   },
   execute = function (event)
-    local node = event:get_subject ()
-    local modules = active[node.id]
-    if not modules then
-      return
-    end
-    active[node.id] = nil
-    modules = nil
-    collectgarbage ()   -- unload the loopbacks now, not at some later GC run
-    log:info (string.format ("node %d went away: removed its splits", node.id))
+    remove (event:get_subject ())
   end
 }:register ()
+
+-- The feature is named hooks.* so it loads before the standard event source
+-- and sees every node-added event. If it ever loads later anyway, pick up the
+-- card's nodes that already exist (create () skips nodes it already handled).
+local source = Plugin.find ("standard-event-source")
+if source then
+  local nodes = source:call ("get-object-manager", "node")
+  if nodes then
+    for node in nodes:iterate () do
+      create (node)
+    end
+  end
+end

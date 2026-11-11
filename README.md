@@ -199,6 +199,7 @@ home/
   .chezmoidata/              machines.yaml, packages.yaml, pacman.yaml, gnome.yaml, tools.yaml (git, tmux plugins)
   .chezmoitemplates/         machine.json (this machine's flags), gnome/*.ini (extension settings)
   .chezmoiignore             files only some machines get
+  .chezmoiremove             files this repo used to install, deleted on apply
   .chezmoiexternal.toml.tmpl tmux plugins
   .chezmoiscripts/           pacman.conf, packages, ssh-agent, PipeWire restart, YubiKey and morbit offers,
                              GNOME shortcut and extensions

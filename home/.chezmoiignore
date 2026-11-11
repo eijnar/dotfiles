@@ -3,13 +3,17 @@
 
 {{- if not $m.focusrite }}
 .config/wireplumber/wireplumber.conf.d/60-scarlett-4i4-split.conf
-.local/share/wireplumber/scripts/scarlett-4i4-split.lua
+.local/share
 .config/wireplumber/wireplumber.conf.d/54-scarlett-pro-audio-only.conf
 .config/alsa-card-profile
 {{- end }}
 
 {{- if not $m.disable_audio_devices }}
 .config/wireplumber/wireplumber.conf.d/52-disable-devices.conf
+{{- end }}
+
+{{- if and (not $m.focusrite) (not $m.disable_audio_devices) }}
+.config/wireplumber
 {{- end }}
 
 {{- if not $m.monitors }}
