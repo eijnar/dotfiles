@@ -3,7 +3,9 @@
 My shell, tmux, vim and git setup, plus per-machine extras, managed with
 [chezmoi](https://www.chezmoi.io/). Arch Linux everywhere, including WSL.
 
-## Quick setup
+## Quick guide
+
+### Set up a machine
 
 ```sh
 # Arch (also WSL), logged in as yourself with sudo:
@@ -13,7 +15,41 @@ exec bash -l                       # or open a new terminal: you land in zsh
 ```
 
 Machine already has configs you care about? Run `chezmoi init eijnar`, then
-`chezmoi diff`, then `chezmoi apply`. Later: `chezmoi update` pulls and applies.
+`chezmoi diff`, then `chezmoi apply`. A new home machine must be listed in
+[`machines.yaml`](home/.chezmoidata/machines.yaml) first, or it gets the work
+profile.
+
+### Keep a machine up to date
+
+```sh
+chezmoi update        # pull this repo and apply it (also installs new packages)
+sudo pacman -Syu      # the system itself; reboot after a kernel update
+```
+
+tmux plugins refresh weekly on `chezmoi update`; `chezmoi update
+--refresh-externals` does it now. GNOME keeps its extensions updated itself.
+
+### Change something
+
+1. Change it (see the table), then `chezmoi apply`. `chezmoi diff` shows what
+   an apply would do.
+2. Save it for the other machines: `chezmoi cd`, then
+   `git add -A && git commit -m "..." && git push`, then `exit`.
+   This repo is public: no secrets, no work or SSH details.
+3. On the other machines: `chezmoi update`.
+
+| To change | How |
+|---|---|
+| A config file | `chezmoi edit ~/.tmux.conf` |
+| A file you already edited in `~` | plain files (`.vimrc`, `starship.toml`, `~/.local/bin/*`, Alacritty, audio): `chezmoi re-add <file>`; templates (`.zshrc`, `.tmux.conf`, `.gitconfig`): `chezmoi merge <file>` |
+| `~/.bashrc` | `chezmoi edit ~/.bashrc`, never `chezmoi add` it. Lines just for this machine: `~/.config/shell/local.d/*.sh` |
+| Packages | [`packages.yaml`](home/.chezmoidata/packages.yaml); the next apply installs what's missing |
+| What a machine gets, or a new machine | [`machines.yaml`](home/.chezmoidata/machines.yaml) |
+| pacman options | [`pacman.yaml`](home/.chezmoidata/pacman.yaml) |
+| tmux plugins | [`tools.yaml`](home/.chezmoidata/tools.yaml) |
+| Alacritty theme | uncomment an `import` line in `~/.config/alacritty/alacritty.toml`, then `chezmoi re-add` it |
+| GNOME extension settings | change them in the extension's preferences, then save them to the repo: `dconf dump /org/gnome/shell/extensions/<name>/ > "$(chezmoi source-path)/.chezmoitemplates/gnome/<name>.ini"` |
+| GNOME extensions | [`gnome.yaml`](home/.chezmoidata/gnome.yaml) plus a settings `.ini`; the next apply installs them (click Install in GNOME's dialog) |
 
 ## New machine
 
@@ -38,7 +74,9 @@ That clones this repo to `~/.local/share/chezmoi` and sets the machine up:
    `DOTFILES_SKIP_PACKAGES=1 chezmoi apply`.
 4. **Writes the configs**, and clones the tmux plugins.
 5. **Runs the per-machine setup**: the ssh-agent user service, a PipeWire
-   restart for the audio config, and the morbit-setup offer.
+   restart for the audio config, the YubiKey and morbit-setup offers, the
+   Super+Enter shortcut and the GNOME extensions (GNOME asks you to confirm
+   each install).
 
 Existing files are overwritten: back up your current `~/.zshrc`,
 `~/.tmux.conf`, `~/.vimrc` and `~/.gitconfig` first, or run
@@ -50,17 +88,6 @@ kept, so move anything else to `~/.config/shell/local.d/` first.
 
 On a fresh WSL install, run `pacman -Syu` first: the image's package database
 is usually old.
-
-## Day to day
-
-| Task | Command |
-|---|---|
-| Edit a config | `chezmoi edit ~/.tmux.conf`, then `chezmoi apply` |
-| Edited a plain file in `~` directly (`.vimrc`, `starship.toml`, `~/.local/bin/*`, the audio configs) | `chezmoi re-add ~/.vimrc` |
-| Edited a template (`.zshrc`, `.tmux.conf`, `.gitconfig`) in `~` | `chezmoi merge ~/.zshrc`, or redo it with `chezmoi edit` (re-add skips templates) |
-| See pending changes | `chezmoi diff` |
-| Pull the repo and apply | `chezmoi update` |
-| Go to the repo | `chezmoi cd` (then commit and push as usual) |
 
 ## Machines
 
@@ -81,9 +108,10 @@ work machines.
 | Scarlett 4i4 PipeWire split + pro-audio lock | ✓ | | |
 | WirePlumber: disable unused sound cards | ✓ | | |
 | `monitor_on` / `monitor_off` / `monitor-toggle` | ✓ | | |
-| `whitelight`, Hack Nerd Font | ✓ | | |
-| Alacritty: no border, padding, Hack Nerd Font, themes to try | ✓ | | |
-| GNOME shortcut Super+Enter → Alacritty | ✓ | | |
+| `whitelight` | ✓ | | |
+| Alacritty: no border, padding, Hack Nerd Font, light transparency, themes to try | ✓ | ✓ | |
+| GNOME shortcut Super+Enter → Alacritty | ✓ | ✓ | |
+| GNOME extensions: rounded corners + shadows, Blur my Shell (Alacritty only) | ✓ | ✓ | |
 | ssh-agent user service | ✓ | ✓ | |
 | morbit in zsh, morbit-setup offer | ✓ | ✓ | |
 | YubiKey SSH keys: `setup-yubikey`, GitHub block in `~/.ssh/config` | ✓ | ✓ | |
@@ -156,11 +184,12 @@ that lives on the YubiKey (`ssh:github`, separate from the morbit keys):
 .chezmoiroot                 chezmoi's source is in home/
 home/
   .chezmoi.toml.tmpl         init: git identity on unlisted machines
-  .chezmoidata/              machines.yaml, packages.yaml, pacman.yaml, tools.yaml (git, tmux plugins)
-  .chezmoitemplates/         machine.json: this machine's flags
+  .chezmoidata/              machines.yaml, packages.yaml, pacman.yaml, gnome.yaml, tools.yaml (git, tmux plugins)
+  .chezmoitemplates/         machine.json (this machine's flags), gnome/*.ini (extension settings)
   .chezmoiignore             files only some machines get
   .chezmoiexternal.toml.tmpl tmux plugins
-  .chezmoiscripts/           pacman.conf, packages, ssh-agent, PipeWire restart, YubiKey and morbit offers
+  .chezmoiscripts/           pacman.conf, packages, ssh-agent, PipeWire restart, YubiKey and morbit offers,
+                             GNOME shortcut and extensions
   modify_private_dot_bashrc  ~/.bashrc (managed part + what other tools add)
   create_private_dot_bash_profile  ~/.bash_profile, only if missing
   private_dot_ssh/modify_private_config  the GitHub block in ~/.ssh/config

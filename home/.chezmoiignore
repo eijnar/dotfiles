@@ -17,8 +17,11 @@
 .local/bin/monitor-toggle
 {{- end }}
 
-{{- if not $m.desktop }}
+{{- if not $m.whitelight }}
 .local/bin/whitelight
+{{- end }}
+
+{{- if not $m.desktop }}
 .config/alacritty
 {{- end }}
 

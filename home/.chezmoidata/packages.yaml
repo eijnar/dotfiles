@@ -18,9 +18,10 @@ packages:
     - zsh-syntax-highlighting
   desktop:
     - alacritty
-    - gtk3              # whitelight
-    - python-gobject    # whitelight
     - ttf-hack-nerd     # Nerd Font symbols for starship and tmux
+  whitelight:
+    - gtk3
+    - python-gobject
   github_yubikey:
     - libfido2          # FIDO2 SSH keys (ed25519-sk); only optional for openssh
     - yubikey-manager   # ykman

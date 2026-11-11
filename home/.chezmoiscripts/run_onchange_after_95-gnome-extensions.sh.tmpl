@@ -1,0 +1,66 @@
+{{- if (includeTemplate "machine.json" . | fromJson).desktop -}}
+#!/usr/bin/env bash
+# GNOME Shell extensions (.chezmoidata/gnome.yaml) and their settings
+# (.chezmoitemplates/gnome/<name>.ini). Settings are loaded first, so a new
+# install starts with them; missing extensions are installed with GNOME's own
+# installer (the extensions.gnome.org dialog: click Install), then enabled.
+# GNOME keeps them updated. chezmoi runs this again when the list or a
+# settings file changes, when an extension goes missing, and once a GNOME
+# session is available if the last run had none:
+#   session: {{ if env "DBUS_SESSION_BUS_ADDRESS" }}yes{{ else }}no{{ end }}
+{{- range .gnome.extensions }}
+#   {{ .uuid }}: {{ if or (stat (joinPath $.chezmoi.homeDir ".local/share/gnome-shell/extensions" .uuid)) (stat (joinPath "/usr/share/gnome-shell/extensions" .uuid)) }}installed{{ else }}missing{{ end }}, settings {{ include (printf ".chezmoitemplates/gnome/%s.ini" .name) | sha256sum | trunc 12 }}
+{{- end }}
+set -euo pipefail
+
+if ! command -v gnome-extensions >/dev/null 2>&1 || [[ -z ${DBUS_SESSION_BUS_ADDRESS:-} ]] ||
+   ! gdbus introspect --session --dest org.gnome.Shell --object-path /org/gnome/Shell >/dev/null 2>&1; then
+  echo "dotfiles: GNOME extensions need a running GNOME session; run chezmoi apply from one" >&2
+  exit 0
+fi
+
+installed() {
+  [[ -d ~/.local/share/gnome-shell/extensions/$1 || -d /usr/share/gnome-shell/extensions/$1 ]]
+}
+
+failed=()
+ensure() {
+  local uuid=$1 result
+  if installed "$uuid"; then
+    gnome-extensions enable "$uuid" 2>/dev/null ||
+      echo "dotfiles: couldn't enable $uuid; it loads after the next login" >&2
+    return 0
+  fi
+  echo "dotfiles: installing GNOME extension $uuid: click Install in the dialog"
+  if result=$(gdbus call --session --timeout 300 --dest org.gnome.Shell --object-path /org/gnome/Shell \
+      --method org.gnome.Shell.Extensions.InstallRemoteExtension "$uuid" 2>&1) && [[ $result == *successful* ]]; then
+    echo "dotfiles: $uuid installed and enabled"
+  else
+    echo "dotfiles: $uuid not installed (${result:-no answer})" >&2
+    failed+=("$uuid")
+  fi
+}
+{{ range .gnome.extensions }}
+# {{ .uuid }}: settings first, then install/enable
+dconf load {{ .dconf | quote }} <<'DOTFILES_DCONF'
+{{ include (printf ".chezmoitemplates/gnome/%s.ini" .name) | trim }}
+DOTFILES_DCONF
+ensure {{ .uuid | quote }}
+{{ end }}
+# An extension that failed to start (e.g. started twice right after install)
+# stays in the ERROR state until GNOME Shell restarts: on Wayland, log out and in.
+broken=()
+{{- range .gnome.extensions }}
+gnome-extensions info {{ .uuid | quote }} 2>/dev/null | grep -q 'State: ERROR' && broken+=({{ .uuid | quote }})
+{{- end }}
+if ((${#broken[@]})); then
+  echo "dotfiles: log out and back in to finish loading: ${broken[*]}" >&2
+fi
+
+# A failed exit makes chezmoi run this again on the next apply.
+if ((${#failed[@]})); then
+  echo "dotfiles: not installed: ${failed[*]}. chezmoi apply asks again; to stop that," >&2
+  echo "          remove it from .chezmoidata/gnome.yaml (chezmoi cd)" >&2
+  exit 1
+fi
+{{- end }}
