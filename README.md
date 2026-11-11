@@ -76,12 +76,15 @@ work machines.
 |---|---|---|---|
 | zsh (via bash), starship, fastfetch, tmux, vim, git | ✓ | ✓ | ✓ |
 | `jaktkollen` | ✓ | ✓ | ✓ |
+| tmux mouse: wheel scroll, click pane, drag borders (nothing else) | ✓ | ✓ | ✓ |
+| `ssh` sends TERM=xterm-256color from Alacritty/tmux | ✓ | ✓ | ✓ |
 | pacman.conf: colour, parallel downloads, version table | ✓ | ✓ | ✓ |
 | Scarlett 4i4 PipeWire split + pro-audio lock | ✓ | | |
 | WirePlumber: disable unused sound cards | ✓ | | |
 | `monitor_on` / `monitor_off` / `monitor-toggle` | ✓ | | |
 | `whitelight`, Hack Nerd Font | ✓ | | |
-| Alacritty: no border, padding, Hack Nerd Font, Nord colours | ✓ | | |
+| Alacritty: no border, padding, Hack Nerd Font, themes to try | ✓ | | |
+| GNOME shortcut Super+Enter → Alacritty | ✓ | | |
 | ssh-agent user service | ✓ | ✓ | |
 | morbit in zsh, morbit-setup offer | ✓ | ✓ | |
 | YubiKey SSH keys: `setup-yubikey`, GitHub block in `~/.ssh/config` | ✓ | ✓ | |
