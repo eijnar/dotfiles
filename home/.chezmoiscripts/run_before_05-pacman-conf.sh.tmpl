@@ -1,0 +1,72 @@
+{{- /*
+  Rendered empty (so chezmoi skips it, and status/verify stay clean) when
+  /etc/pacman.conf already has every option from .chezmoidata/pacman.yaml.
+*/ -}}
+{{- $conf := "" -}}
+{{- if stat "/etc/pacman.conf" }}{{ $conf = include "/etc/pacman.conf" }}{{ end -}}
+{{- $missing := false -}}
+{{- range $key, $value := .pacman.options -}}
+{{-   $line := $key }}{{ if $value }}{{ $line = printf "%s = %s" $key $value }}{{ end -}}
+{{-   if not (regexMatch (printf "(?m)^%s[ \t]*$" (regexQuoteMeta $line)) $conf) }}{{ $missing = true }}{{ end -}}
+{{- end -}}
+{{- if and $conf $missing -}}
+#!/usr/bin/env bash
+# Sets the options in .chezmoidata/pacman.yaml in /etc/pacman.conf's [options]
+# section: uncomments or updates them where they are, adds missing ones right
+# after [options]. Nothing else in the file changes. Runs before every apply
+# (cheap: sudo is only asked for when something has to change, and without
+# sudo it leaves the file alone and tries again next time). It is empty, and
+# not run, once every option is set.
+set -euo pipefail
+
+conf=${DOTFILES_PACMAN_CONF:-/etc/pacman.conf}
+[[ -f $conf ]] || exit 0
+
+want=$(cat <<'EOF'
+{{- range $key, $value := .pacman.options }}
+{{ $key }}{{ if $value }} = {{ $value }}{{ end }}
+{{- end }}
+EOF
+)
+
+new=$(mktemp)
+trap 'rm -f "$new"' EXIT
+awk -v want="$want" '
+  function key(l,   k) { k = l; sub(/^#[ \t]*/, "", k); sub(/[ \t]*=.*/, "", k); sub(/[ \t]+$/, "", k); return k }
+  BEGIN {
+    n = split(want, wl, "\n")
+    for (i = 1; i <= n; i++) {
+      if (wl[i] == "") continue
+      k = key(wl[i]); line[k] = wl[i]; order[++m] = k
+    }
+  }
+  FNR == 1 { sec = "" }
+  # pass 1: which of the options already appear (set or commented) in [options]
+  FNR == NR {
+    if (/^\[/) sec = $0
+    else if (sec == "[options]" && (key($0) in line)) seen[key($0)] = 1
+    next
+  }
+  # pass 2: missing options right after [options]; existing ones set in place
+  /^\[/ {
+    sec = $0; print
+    if (sec == "[options]") for (i = 1; i <= m; i++) if (!(order[i] in seen)) print line[order[i]]
+    next
+  }
+  sec == "[options]" && (key($0) in line) && !(key($0) in done) { print line[key($0)]; done[key($0)] = 1; next }
+  { print }
+' "$conf" "$conf" > "$new"
+
+if cmp -s "$conf" "$new"; then
+  exit 0
+fi
+
+echo "dotfiles: updating $conf:"
+diff -u "$conf" "$new" | sed -n '3,$p' | grep -E '^[-+]' | sed 's/^/  /' || true
+if ! sudo -v; then
+  echo "dotfiles: no sudo, $conf left as it is" >&2
+  exit 0
+fi
+[[ -e $conf.bak-dotfiles ]] || sudo cp -p -- "$conf" "$conf.bak-dotfiles"
+sudo install -m 644 -- "$new" "$conf"
+{{- end -}}
