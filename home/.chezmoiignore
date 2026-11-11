@@ -2,7 +2,8 @@
 {{- $m := includeTemplate "machine.json" . | fromJson -}}
 
 {{- if not $m.focusrite }}
-.config/pipewire/pipewire.conf.d/60-scarlett-4i4.conf
+.config/wireplumber/wireplumber.conf.d/60-scarlett-4i4-split.conf
+.local/share/wireplumber/scripts/scarlett-4i4-split.lua
 .config/wireplumber/wireplumber.conf.d/54-scarlett-pro-audio-only.conf
 .config/alsa-card-profile
 {{- end }}

@@ -1,0 +1,4 @@
+# Removed from every machine on `chezmoi apply` (files this repo used to install).
+# The Scarlett split moved to a WirePlumber script that only runs while the
+# card is plugged in (wireplumber.conf.d/60-scarlett-4i4-split.conf).
+.config/pipewire/pipewire.conf.d/60-scarlett-4i4.conf

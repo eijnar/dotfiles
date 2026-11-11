@@ -105,7 +105,7 @@ work machines.
 | tmux mouse: wheel scroll, click pane, drag borders (nothing else) | ✓ | ✓ | ✓ |
 | `ssh` sends TERM=xterm-256color from Alacritty/tmux | ✓ | ✓ | ✓ |
 | pacman.conf: colour, parallel downloads, version table | ✓ | ✓ | ✓ |
-| Scarlett 4i4 PipeWire split + pro-audio lock | ✓ | | |
+| Scarlett 4i4 split into named devices (while plugged in) + pro-audio lock | ✓ | ✓ | |
 | WirePlumber: disable unused sound cards | ✓ | | |
 | `monitor_on` / `monitor_off` / `monitor-toggle` | ✓ | | |
 | `whitelight` | ✓ | | |
@@ -158,6 +158,18 @@ block in `~/.bashrc` is never seen by zsh. You're offered a morbit-setup run
 (SSH config, jump hosts) once the infrastructure repo is checked out at
 `~/Projects/infrastructure`. The SSH config for the servers comes from
 morbit-setup, not from here.
+
+## Focusrite Scarlett 4i4
+
+On machines with `focusrite: true`, the Scarlett is split into Scarlett VoIP
+(1+2), Scarlett HiFi (3+4), Front 1, Front 2 and Back 3+4, but only while it is
+plugged in. A WirePlumber script
+(`~/.local/share/wireplumber/scripts/scarlett-4i4-split.lua`) creates the split
+devices when the card shows up and removes them when it goes away, so a laptop
+without the Scarlett keeps its own speakers and mic as defaults. The split
+itself is defined in `~/.config/wireplumber/wireplumber.conf.d/60-scarlett-4i4-split.conf`.
+The card is locked to its pro-audio profile, so GNOME's output list can't switch
+it away from what the split needs.
 
 ## GitHub with the YubiKey
 
