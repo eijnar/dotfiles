@@ -1,0 +1,19 @@
+{{- /*
+  This machine's settings: machines.default overlaid with
+  machines.hosts.<short hostname>, plus:
+    known  true when the host is listed in .chezmoidata/machines.yaml (home machine)
+    wsl    true when running under WSL
+  Use it in templates as:
+    {{ $m := includeTemplate "machine.json" . | fromJson }}
+*/ -}}
+{{- $host := .chezmoi.hostname -}}
+{{- $wsl := contains "microsoft" (lower .chezmoi.kernel.osrelease) -}}
+{{- /* WSL always gets the work-safe default, whatever its hostname. */ -}}
+{{- $known := and (not $wsl) (hasKey .machines.hosts $host) -}}
+{{- $m := deepCopy .machines.default -}}
+{{- if $known -}}
+{{-   $m = mergeOverwrite $m (deepCopy (index .machines.hosts $host)) -}}
+{{- end -}}
+{{- $_ := set $m "known" $known -}}
+{{- $_ := set $m "wsl" $wsl -}}
+{{- toJson $m -}}

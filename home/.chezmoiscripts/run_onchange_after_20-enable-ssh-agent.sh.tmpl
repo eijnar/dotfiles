@@ -1,0 +1,12 @@
+{{- if (includeTemplate "machine.json" . | fromJson).ssh_agent -}}
+#!/usr/bin/env bash
+# Enables OpenSSH's ssh-agent as a socket-activated systemd user service;
+# ~/.config/shell/env.sh points SSH_AUTH_SOCK at it. Runs once per machine.
+set -euo pipefail
+
+if ! systemctl --user show-environment >/dev/null 2>&1; then
+  echo "dotfiles: no systemd user session, not enabling ssh-agent.socket" >&2
+  exit 0
+fi
+systemctl --user enable --now ssh-agent.socket
+{{- end }}

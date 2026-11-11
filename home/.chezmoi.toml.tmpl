@@ -1,0 +1,16 @@
+{{- /*
+  Generates ~/.config/chezmoi/chezmoi.toml on `chezmoi init`.
+  Home machines are listed in .chezmoidata/machines.yaml and need no answers.
+  Any other machine (work / WSL) is asked for its git identity once; the
+  answers are stored only in that machine's chezmoi.toml, never in the repo.
+  (.chezmoidata isn't loaded yet when this runs, hence the include.)
+*/ -}}
+{{- $machines := (include ".chezmoidata/machines.yaml" | fromYaml).machines -}}
+{{- $wsl := contains "microsoft" (lower .chezmoi.kernel.osrelease) -}}
+{{- $known := and (not $wsl) (hasKey $machines.hosts .chezmoi.hostname) -}}
+[data]
+{{- if not $known }}
+  # Not listed in .chezmoidata/machines.yaml: work-safe profile.
+  git_name = {{ promptStringOnce . "git_name" "Git name for this machine" "Johan Andersson" | quote }}
+  git_email = {{ promptStringOnce . "git_email" "Git email for this machine (stored only on this machine)" | quote }}
+{{- end }}

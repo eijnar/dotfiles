@@ -1,0 +1,70 @@
+{{- /* chezmoi:modify-template */ -}}
+{{- /*
+  ~/.bashrc is rebuilt on every apply:
+    1. the managed part below (from the repo),
+    2. a marker line,
+    3. marked blocks ("# >>> name ... >>>" ... "# <<< name <<<") found above the
+       marker in the existing file, e.g. morbit-setup's on the first apply,
+    4. everything that was below the marker in the existing file, verbatim:
+       lines other tools append are kept.
+*/ -}}
+{{- $m := includeTemplate "machine.json" . | fromJson -}}
+{{- $marker := "# ---- Kept on chezmoi apply: anything below this line (other tools' additions) ----" -}}
+{{- $head := .chezmoi.stdin -}}
+{{- $tail := "" -}}
+{{- if contains (printf "\n%s\n" $marker) (printf "\n%s" .chezmoi.stdin) -}}
+{{-   $parts := splitn (printf "%s\n" $marker) 2 (printf "\n%s" .chezmoi.stdin) -}}
+{{-   $head = $parts._0 -}}
+{{-   $tail = $parts._1 -}}
+{{- end -}}
+#
+# ~/.bashrc — managed by chezmoi (github.com/eijnar/dotfiles).
+# Edit this part with `chezmoi edit ~/.bashrc` (direct edits above the "Kept"
+# line are overwritten on the next apply). Machine-local settings belong in
+# ~/.config/shell/local.d/*.sh. Never `chezmoi add` this file.
+#
+
+# If not running interactively, don't do anything
+[[ $- != *i* ]] && return
+{{- if $m.zsh }}
+
+# Hand interactive terminals over to zsh. The login shell stays bash (FreeIPA
+# loginShell), so logins keep working on machines without zsh. Stays in bash when:
+#   - DOTFILES_NO_ZSH is set (DOTFILES_NO_ZSH=1 bash, or DOTFILES_NO_ZSH=1 exec bash)
+#   - bash runs a command or a script (bash -c, bash -ic, bash -i script.sh),
+#     or stdin isn't a terminal
+#   - bash was started from zsh (you typed `bash` in zsh)
+#   - zsh or ~/.zshrc is missing, or zsh doesn't start
+if [[ -z ${DOTFILES_NO_ZSH:-} && -z ${BASH_EXECUTION_STRING:-} && -t 0 ]] &&
+   [[ ${0##*/} == bash || $0 == -bash ]] &&
+   [[ -r ${ZDOTDIR:-$HOME}/.zshrc ]] && command -v zsh >/dev/null 2>&1; then
+  __dotfiles_parent=
+  read -r __dotfiles_parent 2>/dev/null </proc/$PPID/comm
+  if [[ $__dotfiles_parent != zsh ]] && zsh -fc : 2>/dev/null; then
+    unset __dotfiles_parent
+    shopt -s execfail
+    if shopt -q login_shell; then exec zsh -l; else exec zsh; fi
+    shopt -u execfail
+    echo "dotfiles: zsh failed to start, staying in bash" >&2
+  fi
+  unset __dotfiles_parent
+fi
+{{- end }}
+
+[[ -r ~/.config/shell/env.sh ]] && . ~/.config/shell/env.sh
+[[ -r ~/.config/shell/aliases.sh ]] && . ~/.config/shell/aliases.sh
+
+PS1='[\u@\h \W]\$ '
+command -v starship >/dev/null 2>&1 && eval "$(starship init bash)"
+command -v fastfetch >/dev/null 2>&1 && fastfetch
+
+# Machine-local settings (not in the repo)
+for __f in ~/.config/shell/local.d/*.sh; do [[ -r $__f ]] && . "$__f"; done
+unset __f
+
+{{ $marker }}
+{{- range $block := regexFindAll "(?ms)^# >>> [^\n]*>>>[ \t\r]*\n.*?^# <<< [^\n]*<<<[ \t\r]*(?:\n|\\z)" $head -1 }}
+
+{{ trimSuffix "\n" $block }}
+{{- end }}
+{{ $tail -}}

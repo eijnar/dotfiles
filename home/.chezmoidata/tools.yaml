@@ -1,0 +1,14 @@
+# Your own git identity, used on the home machines listed in machines.yaml.
+# Unlisted (work) machines ask for theirs on `chezmoi init` instead.
+git:
+  name: Johan Andersson
+  email: github@kaffesump.se
+
+# tmux plugins: cloned by chezmoi (.chezmoiexternal.toml.tmpl) into
+# ~/.tmux/plugins/<repo name> and loaded by tpm (dot_tmux.conf.tmpl).
+tmux:
+  plugins:
+    - tmux-plugins/tpm
+    - tmux-plugins/tmux-sensible
+    - erikw/tmux-powerline
+    - nordtheme/tmux

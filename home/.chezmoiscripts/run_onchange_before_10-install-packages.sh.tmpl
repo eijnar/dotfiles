@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# Installs the Arch packages this machine needs (.chezmoidata/packages.yaml).
+# chezmoi runs it before writing any files, and again whenever the list below
+# changes. Only missing packages are installed. Skip with DOTFILES_SKIP_PACKAGES=1.
+{{- $m := includeTemplate "machine.json" . | fromJson }}
+{{- $pkgs := .packages.base }}
+{{- if $m.desktop }}{{ $pkgs = concat $pkgs .packages.desktop }}{{ end }}
+{{- if $m.focusrite }}{{ $pkgs = concat $pkgs .packages.focusrite }}{{ end }}
+{{- $pkgs = $pkgs | uniq | sortAlpha }}
+# packages: {{ $pkgs | join " " }}
+set -euo pipefail
+{{- if env "DOTFILES_SKIP_PACKAGES" }}
+
+# Skipped by DOTFILES_SKIP_PACKAGES. Decided when chezmoi renders this script,
+# so the next apply without it renders differently and installs as usual.
+exit 0
+{{- end }}
+
+if ! command -v pacman >/dev/null 2>&1; then
+  echo "dotfiles: pacman not found, not installing packages" >&2
+  exit 0
+fi
+
+pkgs=({{ range $pkgs }}{{ . }} {{ end }})
+missing=()
+while IFS= read -r pkg; do
+  [[ -n $pkg ]] && missing+=("$pkg")
+done < <(pacman -T "${pkgs[@]}" || true)
+
+if ((${#missing[@]} == 0)); then
+  exit 0
+fi
+echo "dotfiles: installing ${missing[*]}"
+sudo pacman -S --needed "${missing[@]}"

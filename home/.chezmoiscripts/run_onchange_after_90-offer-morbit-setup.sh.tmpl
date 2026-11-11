@@ -1,0 +1,31 @@
+{{- if (includeTemplate "machine.json" . | fromJson).morbit -}}
+#!/usr/bin/env bash
+# Offers to run morbit-setup from the infrastructure repo. It sets up the SSH
+# config and jump hosts for the servers, and the morbit shell environment.
+# None of that is stored in this (public) repo. chezmoi runs this again when
+# the infrastructure checkout appears, so a fresh machine still gets the offer:
+#   morbit-setup present: {{ if stat (joinPath .chezmoi.homeDir "Projects/infrastructure/bin/morbit-setup") }}yes{{ else }}no{{ end }}
+set -euo pipefail
+
+setup=~/Projects/infrastructure/bin/morbit-setup
+
+if grep -q '^# >>> morbit: env ' ~/.bashrc 2>/dev/null; then
+  exit 0   # already set up
+fi
+if [[ ! -x $setup ]]; then
+  echo "dotfiles: to set up SSH to the servers, clone the infrastructure repo to"
+  echo "          ~/Projects/infrastructure, then run chezmoi apply again"
+  exit 0
+fi
+if ! { : </dev/tty; } 2>/dev/null; then
+  echo "dotfiles: run $setup to set up SSH to the servers"
+  exit 0
+fi
+
+read -r -p "dotfiles: run morbit-setup now (SSH config, jump hosts)? [y/N] " answer </dev/tty
+if [[ $answer == [yY]* ]]; then
+  "$setup" || echo "dotfiles: morbit-setup failed; run it again later: $setup" >&2
+else
+  echo "dotfiles: run it later with: $setup"
+fi
+{{- end }}

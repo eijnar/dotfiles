@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ON_SCRIPT="$HOME/.local/bin/monitor_on"
+OFF_SCRIPT="$HOME/.local/bin/monitor_off"
+
+# Consider DP-2 "enabled" if it appears under the "Logical monitors" section.
+if gdctl show | sed -n '/^Logical monitors:/,$p' | grep -Fq 'DP-2 (ViewSonic'; then
+  exec "$OFF_SCRIPT"
+else
+  exec "$ON_SCRIPT"
+fi
+
