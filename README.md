@@ -30,9 +30,10 @@ chezmoi doesn't update by itself, but new terminals remind you: a line like
 `dotfiles: 2 new change(s) on GitHub, run: chezmoi update` when this machine is
 behind, or `dotfiles: local changes not pushed yet` when it has dotfiles
 changes to commit and push. The check is instant; GitHub is fetched in the
-background at most every 4 hours, so a new change shows up within a few hours
-(in the terminal after the one that fetched). Turn it off with
-`DOTFILES_NO_UPDATE_CHECK=1`.
+background at most every 4 hours (15 minutes after a failed attempt, e.g.
+offline), anonymously, so it never asks for a password or a YubiKey touch. A
+new change shows up in the terminal after the one that fetched. Turn it off
+with `DOTFILES_NO_UPDATE_CHECK=1` (e.g. in `~/.config/shell/local.d/`).
 
 tmux plugins refresh weekly on `chezmoi update`; `chezmoi update
 --refresh-externals` does it now. GNOME keeps its extensions updated itself.
