@@ -1,0 +1,38 @@
+# Dotfiles update check, sourced by ~/.bashrc and ~/.zshrc (interactive shells).
+# Managed by chezmoi (github.com/eijnar/dotfiles).
+#
+# Prints one line when the dotfiles repo on GitHub has changes this machine
+# hasn't applied ("chezmoi update"), or when this machine has dotfiles changes
+# that aren't committed and pushed. The check itself is local and instant; the
+# repo is fetched in the background at most every 4 hours, never asking for a
+# password or a YubiKey touch. Turn it off with DOTFILES_NO_UPDATE_CHECK=1.
+
+__dotfiles_check() {
+  local repo stamp behind ahead dirty
+  repo={{ .chezmoi.workingTree | quote }}
+  [ -n "${DOTFILES_NO_UPDATE_CHECK:-}" ] && return 0
+  [ -d "$repo/.git" ] || return 0
+  command -v git >/dev/null 2>&1 || return 0
+
+  # Background fetch, at most every 4 hours (the stamp is touched first, so
+  # several new terminals at once don't all fetch).
+  stamp=${XDG_CACHE_HOME:-$HOME/.cache}/dotfiles/last-fetch
+  if [ -z "$(find "$stamp" -mmin -240 2>/dev/null)" ]; then
+    mkdir -p "${stamp%/*}" && touch "$stamp"
+    ( GIT_TERMINAL_PROMPT=0 GIT_SSH_COMMAND='ssh -o BatchMode=yes' \
+        timeout 30 git -C "$repo" fetch --quiet >/dev/null 2>&1 & )
+  fi
+
+  behind=$(git -C "$repo" rev-list --count 'HEAD..@{upstream}' 2>/dev/null) || behind=0
+  ahead=$(git -C "$repo" rev-list --count '@{upstream}..HEAD' 2>/dev/null) || ahead=0
+  dirty=$(git -C "$repo" status --porcelain 2>/dev/null | head -n 1)
+
+  if [ "${behind:-0}" -gt 0 ]; then
+    printf 'dotfiles: %s new change(s) on GitHub, run: chezmoi update\n' "$behind"
+  fi
+  if [ "${ahead:-0}" -gt 0 ] || [ -n "$dirty" ]; then
+    printf 'dotfiles: local changes not pushed yet: chezmoi cd, then commit and push\n'
+  fi
+}
+__dotfiles_check
+unset -f __dotfiles_check

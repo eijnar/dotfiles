@@ -26,6 +26,14 @@ chezmoi update        # pull this repo and apply it (also installs new packages)
 sudo pacman -Syu      # the system itself; reboot after a kernel update
 ```
 
+chezmoi doesn't update by itself, but new terminals remind you: a line like
+`dotfiles: 2 new change(s) on GitHub, run: chezmoi update` when this machine is
+behind, or `dotfiles: local changes not pushed yet` when it has dotfiles
+changes to commit and push. The check is instant; GitHub is fetched in the
+background at most every 4 hours, so a new change shows up within a few hours
+(in the terminal after the one that fetched). Turn it off with
+`DOTFILES_NO_UPDATE_CHECK=1`.
+
 tmux plugins refresh weekly on `chezmoi update`; `chezmoi update
 --refresh-externals` does it now. GNOME keeps its extensions updated itself.
 
