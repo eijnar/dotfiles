@@ -62,6 +62,9 @@ command -v fastfetch >/dev/null 2>&1 && fastfetch
 for __f in ~/.config/shell/local.d/*.sh; do [[ -r $__f ]] && . "$__f"; done
 unset __f
 
+# Tell me when the dotfiles have updates waiting or changes to push
+[[ -r ~/.config/shell/dotfiles-check.sh ]] && . ~/.config/shell/dotfiles-check.sh
+
 {{ $marker }}
 {{- range $block := regexFindAll "(?ms)^# >>> [^\n]*>>>[ \t\r]*\n.*?^# <<< [^\n]*<<<[ \t\r]*(?:\n|\\z)" $head -1 }}
 

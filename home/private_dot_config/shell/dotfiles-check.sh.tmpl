@@ -1,0 +1,59 @@
+# Dotfiles update check, sourced by ~/.bashrc and ~/.zshrc (interactive shells,
+# after ~/.config/shell/local.d). Managed by chezmoi (github.com/eijnar/dotfiles).
+#
+# Prints one line when the dotfiles repo on GitHub has changes this machine
+# hasn't applied ("chezmoi update"), or when this machine has dotfiles changes
+# that aren't committed and pushed. The check itself is local and instant.
+#
+# The repo is fetched in the background at most every 4 hours (15 minutes after
+# a failed attempt). The fetch is anonymous: GitHub remotes are read over
+# public HTTPS, ssh never uses the agent (so no YubiKey touch), and no password
+# prompt, askpass dialog or credential helper can come up. It doesn't write
+# FETCH_HEAD, so it can't upset a `chezmoi update` running at the same time.
+# Turn the check off with DOTFILES_NO_UPDATE_CHECK=1 (e.g. in local.d).
+
+__dotfiles_check() {
+  local repo stamp upstream behind ahead dirty
+  repo={{ .chezmoi.workingTree | quote }}
+  [ -n "${DOTFILES_NO_UPDATE_CHECK:-}" ] && return 0
+  [ -d "$repo/.git" ] || return 0
+  command -v git >/dev/null 2>&1 || return 0
+
+  stamp=${XDG_CACHE_HOME:-$HOME/.cache}/dotfiles/last-fetch
+  if [ -z "$(find "$stamp" -mmin -240 2>/dev/null)" ]; then
+    mkdir -p "${stamp%/*}"
+    # Hold off other new terminals for 15 minutes; a successful fetch makes
+    # that the full 4 hours.
+    touch -d '225 minutes ago' "$stamp" 2>/dev/null || touch "$stamp"
+    ( GIT_TERMINAL_PROMPT=0 GIT_ASKPASS='' SSH_ASKPASS='' SSH_ASKPASS_REQUIRE=never \
+      GIT_SSH_COMMAND='ssh -o BatchMode=yes -o IdentityAgent=none' \
+      timeout 30 git \
+        -c 'url.https://github.com/.insteadOf=git@github.com:' \
+        -c 'url.https://github.com/.insteadOf=ssh://git@github.com/' \
+        -c credential.helper= -c credential.interactive=false -c core.askPass= \
+        -C "$repo" fetch --quiet --no-write-fetch-head >/dev/null 2>&1 \
+      && touch "$stamp" & )
+  fi
+
+  if [ -d "$repo/.git/rebase-merge" ] || [ -d "$repo/.git/rebase-apply" ] || [ -f "$repo/.git/MERGE_HEAD" ]; then
+    printf 'dotfiles: a rebase or merge is in progress: chezmoi cd, then git status\n'
+    return 0
+  fi
+
+  # Behind: compared with the upstream branch, or GitHub's main branch if this
+  # branch has none. Not pushed: commits on no remote branch, or uncommitted.
+  upstream=$(git --no-optional-locks -C "$repo" rev-parse --abbrev-ref '@{upstream}' 2>/dev/null) ||
+    upstream=origin/HEAD
+  behind=$(git --no-optional-locks -C "$repo" rev-list --count "HEAD..$upstream" 2>/dev/null) || behind=0
+  ahead=$(git --no-optional-locks -C "$repo" rev-list --count HEAD --not --remotes 2>/dev/null) || ahead=0
+  dirty=$(git --no-optional-locks -C "$repo" status --porcelain 2>/dev/null | head -n 1)
+
+  if [ "${behind:-0}" -gt 0 ]; then
+    printf 'dotfiles: %s new change(s) on GitHub, run: chezmoi update\n' "$behind"
+  fi
+  if [ "${ahead:-0}" -gt 0 ] || [ -n "$dirty" ]; then
+    printf 'dotfiles: local changes not pushed yet: chezmoi cd, then commit and push\n'
+  fi
+}
+__dotfiles_check
+unset -f __dotfiles_check

@@ -89,3 +89,6 @@ unset __f
   source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 
 (( $+commands[fastfetch] )) && fastfetch
+
+# Tell me when the dotfiles have updates waiting or changes to push
+[[ -r ~/.config/shell/dotfiles-check.sh ]] && source ~/.config/shell/dotfiles-check.sh
