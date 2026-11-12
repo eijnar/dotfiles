@@ -30,6 +30,10 @@
 .config/alacritty
 {{- end }}
 
+{{- if not $m.yubikey_login }}
+.local/bin/setup-yubikey-login
+{{- end }}
+
 {{- /* Work machines never get anything under ~/.ssh from this repo. */}}
 {{- if not $m.github_yubikey }}
 .ssh

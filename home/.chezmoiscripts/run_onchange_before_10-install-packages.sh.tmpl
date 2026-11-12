@@ -4,10 +4,12 @@
 # changes. Only missing packages are installed. Skip with DOTFILES_SKIP_PACKAGES=1.
 {{- $m := includeTemplate "machine.json" . | fromJson }}
 {{- $pkgs := .packages.base }}
+{{- if $m.morbit }}{{ $pkgs = concat $pkgs .packages.morbit }}{{ end }}
 {{- if $m.desktop }}{{ $pkgs = concat $pkgs .packages.desktop }}{{ end }}
 {{- if $m.whitelight }}{{ $pkgs = concat $pkgs .packages.whitelight }}{{ end }}
 {{- if $m.focusrite }}{{ $pkgs = concat $pkgs .packages.focusrite }}{{ end }}
 {{- if $m.github_yubikey }}{{ $pkgs = concat $pkgs .packages.github_yubikey }}{{ end }}
+{{- if $m.yubikey_login }}{{ $pkgs = concat $pkgs .packages.yubikey_login }}{{ end }}
 {{- $pkgs = $pkgs | uniq | sortAlpha }}
 # packages: {{ $pkgs | join " " }}
 set -euo pipefail

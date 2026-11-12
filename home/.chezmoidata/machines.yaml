@@ -19,6 +19,7 @@ machines:
     monitors: false      # monitor_on/off/toggle (strumpdator's monitor layout)
     focusrite: false     # Scarlett 4i4: split into named devices while plugged in, pro-audio lock
     github_yubikey: false  # YubiKey SSH keys: setup-yubikey, GitHub block in ~/.ssh/config
+    yubikey_login: false   # log in with the YubiKey (PIN + touch) or password + TOTP code: setup-yubikey-login
     disable_audio_devices: []   # ALSA cards WirePlumber should ignore
   hosts:
     strumpdator:         # home desktop
@@ -38,3 +39,4 @@ machines:
       desktop: true
       focusrite: true
       github_yubikey: true
+      yubikey_login: true  # not strumpdator while it still logs in through FreeIPA

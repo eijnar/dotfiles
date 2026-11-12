@@ -1,0 +1,23 @@
+{{- if (includeTemplate "machine.json" . | fromJson).yubikey_login -}}
+#!/usr/bin/env bash
+# Offers to run setup-yubikey-login (log in with the YubiKey or password + TOTP
+# code) while it isn't set up. chezmoi runs this offer again whenever the
+# helper changes; run setup-yubikey-login yourself any time.
+#   helper: {{ include "private_dot_local/bin/executable_setup-yubikey-login" | sha256sum }}
+set -euo pipefail
+
+if ~/.local/bin/setup-yubikey-login --status 2>/dev/null; then
+  exit 0
+fi
+if ! { true </dev/tty; } 2>/dev/null; then
+  echo "dotfiles: set up YubiKey login later with: setup-yubikey-login"
+  exit 0
+fi
+
+read -r -p "dotfiles: set up login with the YubiKey (or password + code) now? [y/N] " answer </dev/tty
+if [[ $answer == [yY]* ]]; then
+  ~/.local/bin/setup-yubikey-login </dev/tty || echo "dotfiles: run setup-yubikey-login again when you're ready" >&2
+else
+  echo "dotfiles: run setup-yubikey-login whenever you're ready"
+fi
+{{- end }}

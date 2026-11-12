@@ -16,6 +16,12 @@ packages:
     - zsh-autosuggestions
     - zsh-completions
     - zsh-syntax-highlighting
+  morbit:              # home machines (machines.yaml: morbit)
+    - bitwarden-cli     # bw
+    - libfido2          # fido2-token, FIDO2 SSH keys
+    - yubikey-manager   # ykman
+    - ccid              # smart-card side of the YubiKey (OATH, PIV, OpenPGP),
+    - pcsclite          # through pcscd: .chezmoiscripts/..-enable-pcscd
   desktop:
     - alacritty
     - ttf-hack-nerd     # Nerd Font symbols for starship and tmux
@@ -25,6 +31,10 @@ packages:
   github_yubikey:
     - libfido2          # FIDO2 SSH keys (ed25519-sk); only optional for openssh
     - yubikey-manager   # ykman
+  yubikey_login:
+    - libpam-google-authenticator  # TOTP code after the password
+    - pam-u2f           # YubiKey login
+    - qrencode          # QR code for the authenticator app
   focusrite:
     - pipewire
     - pipewire-pulse

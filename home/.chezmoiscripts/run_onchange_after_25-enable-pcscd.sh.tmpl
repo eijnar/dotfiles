@@ -1,0 +1,13 @@
+{{- if (includeTemplate "machine.json" . | fromJson).morbit -}}
+#!/usr/bin/env bash
+# Enables pcscd (socket-activated), the smart-card service ykman and gpg use
+# for the YubiKey's OATH, PIV and OpenPGP applets. Without it ykman says
+# "PC/SC not available". FIDO2 (SSH keys, login) doesn't need it. Runs once.
+set -euo pipefail
+
+if systemctl is-enabled --quiet pcscd.socket 2>/dev/null; then
+  exit 0
+fi
+echo "dotfiles: enabling pcscd.socket (smart-card access for ykman)"
+sudo systemctl enable --now pcscd.socket
+{{- end }}
