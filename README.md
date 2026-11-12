@@ -111,7 +111,7 @@ work machines.
 |---|---|---|---|
 | zsh (via bash), starship, fastfetch, tmux, vim, git | ✓ | ✓ | ✓ |
 | `jaktkollen` | ✓ | ✓ | ✓ |
-| tmux mouse: wheel scroll, click pane, drag borders (nothing else) | ✓ | ✓ | ✓ |
+| tmux: minimal theme, mouse (scroll, click pane, drag borders, select text → clipboard) | ✓ | ✓ | ✓ |
 | `ssh` sends TERM=xterm-256color from Alacritty/tmux | ✓ | ✓ | ✓ |
 | pacman.conf: colour, parallel downloads, version table | ✓ | ✓ | ✓ |
 | Scarlett 4i4 split into named devices (while plugged in) + pro-audio lock | ✓ | ✓ | |
@@ -123,7 +123,9 @@ work machines.
 | GNOME extensions: rounded corners + shadows, Blur my Shell (Alacritty only) | ✓ | ✓ | |
 | ssh-agent user service | ✓ | ✓ | |
 | morbit in zsh, morbit-setup offer | ✓ | ✓ | |
+| `bitwarden-cli`, `ykman`, `libfido2`, pcscd (smart-card side of the YubiKey) | ✓ | ✓ | |
 | YubiKey SSH keys: `setup-yubikey`, GitHub block in `~/.ssh/config` | ✓ | ✓ | |
+| [Log in with the YubiKey or password + TOTP code](#logging-in-with-the-yubikey): `setup-yubikey-login` | | ✓ | |
 
 To add a home machine, add it under `hosts` with the flags that differ from
 `default`, push, and run `chezmoi init --apply eijnar` on it. Never list work
@@ -198,6 +200,36 @@ that lives on the YubiKey (`ssh:github`, separate from the morbit keys):
 - On a server: `ssh -A server` for that session, and touch the key at your
   desk when git asks. Servers that only pull get their own read-only deploy key.
 - Work machines never get anything under `~/.ssh` from this repo.
+
+## Logging in with the YubiKey
+
+On machines with `yubikey_login: true` (strumptop; strumpdator still logs in
+through FreeIPA), there are two ways in:
+
+- **YubiKey plugged in:** its FIDO2 PIN, then a touch.
+- **Without it:** your password, then a 6-digit TOTP code from an
+  authenticator (Bitwarden can hold it), or one of the emergency scratch codes.
+
+It covers everything that goes through `/etc/pam.d/system-auth`: the GNOME
+login and lock screen, TTY login, sudo and GNOME admin prompts. `su` (root's
+own password) and SSH keys are unchanged, and root, which has no enrolment,
+keeps plain password login.
+
+`setup-yubikey-login` sets it up, and the first apply offers to run it. It
+enrols the YubiKey (`~/.config/Yubico/u2f_keys`) and the TOTP secret
+(`~/.google_authenticator`; save the scratch codes it prints in Bitwarden),
+then adds two lines to `system-auth`. It refuses if that file's auth section
+isn't Arch's stock one. Before switching it arms a timer that puts the old file
+back after 10 minutes. It cancels the timer only after both ways in have worked
+through sudo, so a broken config can't lock you out.
+
+- `setup-yubikey-login --add-key` enrols a spare YubiKey.
+- `setup-yubikey-login --uninstall` restores the stock file (kept as
+  `system-auth.dotfiles-orig`).
+- After a YubiKey login the GNOME keyring stays locked until something needs
+  it; then it asks for your password once.
+- The YubiKey's PIN locks after 8 wrong tries in a row; a password + code
+  login still works then.
 
 ## Layout
 

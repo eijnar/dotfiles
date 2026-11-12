@@ -46,16 +46,16 @@ bind -n M-Down select-pane -D
 bind -n S-Up swap-pane -s +1
 bind -n S-Down swap-pane -s -1
 
-# Mouse: only scrolling (wheel), clicking a pane to focus it and dragging pane
-# borders to resize. Everything else tmux would do with the mouse is unbound
-# (menus, status-bar clicks, middle-click paste, tmux's own text selection).
-# Select and paste text with the terminal as usual, holding Shift.
+# Mouse: scrolling (wheel), clicking a pane to focus it, dragging pane borders
+# to resize, and selecting text inside a pane: drag, double-click a word or
+# triple-click a line; it is copied to the clipboard on release. Apps that
+# handle the mouse themselves (Claude Code, vim) still get the drag. Holding
+# Shift bypasses tmux and selects with the terminal instead (across panes).
+# Everything else is unbound: menus, status-bar clicks, middle-click paste.
 set -g mouse on
 unbind -q -T root C-MouseDown1Status
 unbind -q -T root C-MouseDrag1Empty
 unbind -q -T root C-MouseDrag1Pane
-unbind -q -T root DoubleClick1Pane
-unbind -q -T root TripleClick1Pane
 unbind -q -T root M-MouseDown3Empty
 unbind -q -T root M-MouseDown3Pane
 unbind -q -T root M-MouseDown3Status
@@ -74,19 +74,28 @@ unbind -q -T root MouseDown3Empty
 unbind -q -T root MouseDown3Pane
 unbind -q -T root MouseDown3Status
 unbind -q -T root MouseDown3StatusLeft
-unbind -q -T root MouseDrag1Pane
 unbind -q -T root WheelUpStatus
 unbind -q -T root WheelDownStatus
-# Scrolling enters copy mode: keep the wheel and click-to-focus there, but no
-# tmux text selection either.
-unbind -q -T copy-mode MouseDrag1Pane
-unbind -q -T copy-mode MouseDragEnd1Pane
-unbind -q -T copy-mode DoubleClick1Pane
-unbind -q -T copy-mode TripleClick1Pane
-unbind -q -T copy-mode-vi MouseDrag1Pane
-unbind -q -T copy-mode-vi MouseDragEnd1Pane
-unbind -q -T copy-mode-vi DoubleClick1Pane
-unbind -q -T copy-mode-vi TripleClick1Pane
+# Text selection: tmux's stock bindings, spelled out so a config reload brings
+# them back on a server where an older version of this file unbound them.
+bind -T root MouseDrag1Pane if -F "#{||:#{pane_in_mode},#{mouse_any_flag}}" { send -M } { copy-mode -M }
+bind -T root DoubleClick1Pane select-pane -t = \; if -F "#{||:#{pane_in_mode},#{mouse_any_flag}}" { send -M } { copy-mode -H ; send -X select-word ; run -d 0.3 ; send -X copy-pipe-and-cancel }
+bind -T root TripleClick1Pane select-pane -t = \; if -F "#{||:#{pane_in_mode},#{mouse_any_flag}}" { send -M } { copy-mode -H ; send -X select-line ; run -d 0.3 ; send -X copy-pipe-and-cancel }
+bind -T copy-mode MouseDrag1Pane select-pane \; send -X begin-selection
+bind -T copy-mode MouseDragEnd1Pane send -X copy-pipe-and-cancel
+bind -T copy-mode DoubleClick1Pane select-pane \; send -X select-word \; run -d 0.3 \; send -X copy-pipe-and-cancel
+bind -T copy-mode TripleClick1Pane select-pane \; send -X select-line \; run -d 0.3 \; send -X copy-pipe-and-cancel
+bind -T copy-mode-vi MouseDrag1Pane select-pane \; send -X begin-selection
+bind -T copy-mode-vi MouseDragEnd1Pane send -X copy-pipe-and-cancel
+bind -T copy-mode-vi DoubleClick1Pane select-pane \; send -X select-word \; run -d 0.3 \; send -X copy-pipe-and-cancel
+bind -T copy-mode-vi TripleClick1Pane select-pane \; send -X select-line \; run -d 0.3 \; send -X copy-pipe-and-cancel
+
+# Copies go to the system clipboard: through wl-copy where it exists (the
+# desktop), and through the terminal (OSC 52) otherwise, which also works
+# from a tmux on a server reached over SSH.
+set -s set-clipboard on
+set -as terminal-features ",alacritty*:clipboard"
+if-shell 'command -v wl-copy >/dev/null' 'set -s copy-command "wl-copy"'
 
 # Status bar
 set-option -g status-position bottom
@@ -103,12 +112,80 @@ set -as terminal-features ",alacritty*:RGB"
 ### DESIGN CHANGES ###
 ######################
 
-# tmux-powerline sets status-left/status-right itself when tpm loads it.
-set-option -g status on
-set-option -g status-interval 2
-set-option -g status-justify "centre"
-set-option -g status-left-length 60
-set-option -g status-right-length 90
+# Minimal native theme: no plugin, no scripts. Colours are the terminal's own
+# ANSI names, so it follows whichever Alacritty theme is active.
+#   accent = blue, muted = brightblack, alert = yellow / red
+
+set -g status on
+set -g status-interval 5
+set -g status-justify centre
+set -g status-style "bg=default,fg=brightblack"
+set -g status-left-length 60
+set -g status-right-length 60
+
+# Two status rows: a thin rule on top marks where the bar starts (it turns
+# yellow with the prefix, like the session name), and tmux's stock status
+# line below it, moved from row 0 to row 1 unchanged.
+set -g status 2
+set -g status-format[0] "#[fg=#{?client_prefix,yellow,brightblack}]#{R:─,#{client_width}}"
+set -g status-format[1] '#[align=left range=left #{E:status-left-style}]#[push-default]#{T;=/#{status-left-length}:status-left}#[pop-default]#[norange default]#[list=on align=#{status-justify}]#[list=left-marker]<#[list=right-marker]>#[list=on]#{W:#[range=window|#{window_index} #{E:window-status-style}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-format}#[pop-default]#[norange default]#{?loop_last_flag,,#{E:window-status-separator}},#[range=window|#{window_index} list=focus #{?#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-current-format}#[pop-default]#[norange list=on default]#{?loop_last_flag,,#{E:window-status-separator}}}#[nolist align=right range=right #{E:status-right-style}]#[push-default]#{T;=/#{status-right-length}:status-right}#[pop-default]#[norange default]'
+
+# Accent for the current session: yellow while the prefix is held, magenta in
+# copy mode, blue otherwise.
+set -g @accent "#{?client_prefix,yellow,#{?pane_in_mode,magenta,blue}}"
+
+# Left: every session (● private · work), the current one in the accent.
+# prefix + ( / ) switches between them.
+set -g status-left "#[fg=#{E:@accent},bold] ● #[nobold]#{S:#[fg=brightblack]#S#{?loop_last_flag,, · },#[fg=#{E:@accent},bold]#S#[nobold]#[fg=brightblack]#{?loop_last_flag,, · }} #[default]"
+
+# Remote: when this tmux runs on a machine reached over SSH, the hostname on
+# the right turns red so a server is never mistaken for the desk machine.
+if-shell '[ -n "$SSH_CONNECTION" ]' 'set -g @remote 1' 'set -g @remote 0'
+
+# Right: SYNC alarm while synchronize-panes is on (typing goes to every pane),
+# host (red over SSH), weekday and time.
+set -g status-right "#{?pane_synchronized,#[fg=red#,bold]SYNC#[nobold]  ,}#{?#{==:#{@remote},1},#[fg=red#,bold]ssh #h#[nobold],#[fg=brightblack]#h}  #[fg=brightblack]%a #[fg=white]%H:%M "
+
+# Windows: dim number + name; the current one in the accent colour, with a
+# ◆ when its pane is zoomed and ◫N when it is split into N panes. The previous
+# window (prefix + l) is a shade lighter and in italics; background windows
+# with new output turn yellow.
+set -g window-status-separator ""
+set -g window-status-style "fg=brightblack"
+set -g window-status-last-style "fg=white,italics"
+set -g window-status-format " #I #W#{?#{>:#{window_panes},1}, ◫#{window_panes},} "
+set -g window-status-current-style "fg=white,bold"
+set -g window-status-current-format " #[fg=blue]#I #[fg=white]#W#[fg=blue]#{?#{>:#{window_panes},1}, ◫#{window_panes},}#{?window_zoomed_flag, ◆,} "
+set -g window-status-activity-style "fg=yellow"
+set -g window-status-bell-style "fg=red,bold"
+setw -g monitor-activity on
+set -g visual-activity off
+set -g visual-bell off
+
+# Pane borders: thin, muted; the active pane's border picks up the accent.
+set -g pane-border-lines single
+set -g pane-border-style "fg=brightblack"
+set -g pane-active-border-style "fg=blue"
+set -g pane-border-indicators colour
+
+# Messages, command prompt and copy-mode selection.
+set -g message-style "bg=default,fg=blue,bold"
+set -g message-command-style "bg=default,fg=magenta"
+set -g mode-style "bg=blue,fg=black"
+set -g display-panes-active-colour blue
+set -g display-panes-colour brightblack
+set -g clock-mode-colour blue
+
+# A session started without a name ("tmux") is called "private" instead of
+# a number; if "private" already exists it keeps its number.
+set-hook -g session-created 'run -b "case #{hook_session_name} in *[!0-9]*) ;; *) tmux has-session -t =private 2>/dev/null || tmux rename-session -t =#{hook_session_name} private ;; esac"'
+
+# Numbering from 1 matches the keyboard; keep it gap-free when windows close.
+set -g base-index 1
+setw -g pane-base-index 1
+set -g renumber-windows on
+set -g set-titles on
+set -g set-titles-string "#S · #W"
 
 # Initialize TMUX plugin manager (keep this line at the very bottom of tmux.conf)
 run -b '~/.tmux/plugins/tpm/tpm'

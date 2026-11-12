@@ -1,0 +1,196 @@
+#!/usr/bin/env bash
+# setup-yubikey-login — log in on this machine with the YubiKey (its FIDO2 PIN,
+# then a touch), or, without it, with your password followed by a TOTP code.
+# Covers everything that authenticates through /etc/pam.d/system-auth: the
+# GNOME login and lock screen, TTY login, sudo and GNOME admin prompts. su
+# (root's own password) and SSH keys are unchanged; accounts without the
+# enrolment files below (root) keep plain password login.
+#
+#   setup-yubikey-login              enrol what's missing, install, test
+#   setup-yubikey-login --add-key    enrol another YubiKey (a spare)
+#   setup-yubikey-login --status     exit 0 when enrolled and installed
+#   setup-yubikey-login --uninstall  put the stock system-auth back
+#
+# Enrolment lives in your home: ~/.config/Yubico/u2f_keys (the YubiKey) and
+# ~/.google_authenticator (the TOTP secret and emergency scratch codes).
+# Installing arms a timer that restores the previous system-auth after 10
+# minutes, and only cancels it once both ways in have worked through sudo.
+# Managed by chezmoi (github.com/eijnar/dotfiles).
+set -euo pipefail
+
+host=$(uname -n); host=${host%%.*}
+origin="pam://$host"        # fixed, so a later hostname change keeps the key valid
+u2f_keys=~/.config/Yubico/u2f_keys
+totp=~/.google_authenticator
+pam=/etc/pam.d/system-auth
+orig=/etc/pam.d/system-auth.dotfiles-orig   # stock file, for --uninstall
+prev=/etc/pam.d/system-auth.dotfiles-prev   # what the rollback timer restores
+marker="# dotfiles: setup-yubikey-login"
+rollback=dotfiles-pam-rollback
+
+die() { echo "setup-yubikey-login: $*" >&2; exit 1; }
+
+# Arch's stock auth section (pambase). The two new lines go in between; any
+# other layout is left alone rather than guessed at.
+stock_auth='auth required pam_faillock.so preauth
+-auth [success=2 default=ignore] pam_systemd_home.so
+auth [success=1 default=bad] pam_unix.so try_first_pass nullok
+auth [default=die] pam_faillock.so authfail
+auth optional pam_permit.so
+auth required pam_env.so
+auth required pam_faillock.so authsucc'
+
+# The stock file this config is built from: the saved original once installed.
+base_file() { if grep -qF "$marker" "$pam"; then echo "$orig"; else echo "$pam"; fi; }
+
+desired() {
+  local base
+  base=$(base_file)
+  [[ -r $base ]] || die "$base is missing; can't build the config"
+  if [[ $(grep -E '^-?auth' "$base" | tr -s ' \t' ' ') != "$stock_auth" ]]; then
+    die "$base's auth section isn't Arch's stock one; not touching it"
+  fi
+  awk -v marker="$marker" -v origin="$origin" '
+    NR == 1 && /^#%PAM/ { print; print marker " (github.com/eijnar/dotfiles)."; print "# The stock file is system-auth.dotfiles-orig."; next }
+    { print }
+    /^auth[ \t]+required[ \t]+pam_faillock\.so[ \t]+preauth/ {
+      print "# YubiKey: FIDO2 PIN + touch is enough on its own and skips the 5 lines"
+      print "# below to pam_env. Not plugged in or not enrolled: ignored, on to the password."
+      printf "auth       [success=5 default=ignore]  pam_u2f.so           cue pinverification=1 origin=%s appid=%s\n", origin, origin
+    }
+    /^auth[ \t]+optional[ \t]+pam_permit\.so/ {
+      print "# After the password: a TOTP code. Without ~/.google_authenticator (root): skipped."
+      print "auth       [success=ok ignore=ignore default=die]  pam_google_authenticator.so  nullok"
+    }' "$base"
+}
+
+installed() { grep -qF "$marker" "$pam" && [[ $(desired) == "$(cat "$pam")" ]]; }
+enrolled()  { [[ -s $u2f_keys && -s $totp ]]; }
+
+need_tools() {
+  local missing=()
+  command -v pamu2fcfg >/dev/null || missing+=(pam-u2f)
+  command -v google-authenticator >/dev/null || missing+=(libpam-google-authenticator)
+  command -v fido2-token >/dev/null || missing+=(libfido2)
+  ((${#missing[@]} == 0)) || die "missing packages; run chezmoi apply, or: sudo pacman -S --needed ${missing[*]}"
+}
+
+need_yubikey() {
+  [[ -n $(fido2-token -L 2>/dev/null) ]] || die "no YubiKey found. Plug it in and run me again."
+}
+
+enrol_yubikey() {
+  local add=$1 line
+  need_yubikey
+  echo "YubiKey: enter its PIN, then touch it when it blinks."
+  mkdir -p "${u2f_keys%/*}"
+  if [[ $add == yes ]]; then
+    line=$(pamu2fcfg -n -N -o "$origin" -i "$origin")
+    printf '%s%s\n' "$(tr -d '\n' <"$u2f_keys")" "$line" >"$u2f_keys.new"
+  else
+    line=$(pamu2fcfg -N -o "$origin" -i "$origin")
+    printf '%s\n' "$line" >"$u2f_keys.new"
+  fi
+  chmod 600 "$u2f_keys.new"
+  mv "$u2f_keys.new" "$u2f_keys"
+  echo "YubiKey enrolled ($u2f_keys)."
+}
+
+enrol_totp() {
+  cat <<EOF
+
+TOTP: scan the QR code below into your authenticator (Bitwarden can hold it),
+and save the emergency scratch codes in Bitwarden: each one works once in
+place of a code, if the authenticator is ever out of reach.
+EOF
+  google-authenticator --time-based --disallow-reuse --force --rate-limit=3 \
+    --rate-time=30 --window-size=3 --label="$USER@$host" --issuer="$host login" \
+    --secret="$totp"
+  [[ -s $totp ]] || die "no TOTP secret was written"
+  echo "TOTP secret saved ($totp)."
+}
+
+pam_test() {
+  local what=$1
+  echo
+  echo "Test: $what"
+  # -k ignores sudo's cached login for this one command without dropping it,
+  # so on failure the cache can still put the old config back right away.
+  for try in 1 2; do
+    if sudo -k true; then echo "  ok"; return 0; fi
+    [[ $try == 1 ]] && echo "  didn't work; once more."
+  done
+  return 1
+}
+
+restore_prev() {
+  if sudo -n cp -a "$prev" "$pam" 2>/dev/null; then
+    sudo -n systemctl stop "$rollback.timer" 2>/dev/null || true
+    echo "setup-yubikey-login: the previous system-auth is back." >&2
+  else
+    echo "setup-yubikey-login: couldn't put the previous system-auth back right away;" >&2
+    echo "  the timer does it within 10 minutes of installing. Wait for it before retrying." >&2
+  fi
+}
+
+install_pam() {
+  local new
+  new=$(desired)
+  if [[ $new == "$(cat "$pam")" ]]; then
+    echo "PAM: already installed."
+    return 0
+  fi
+  echo
+  echo "Installing the PAM config. sudo asks for your login as it is now."
+  sudo -v
+  grep -qF "$marker" "$pam" || sudo cp -a "$pam" "$orig"
+  sudo cp -a "$pam" "$prev"
+  sudo systemctl stop "$rollback.timer" 2>/dev/null || true
+  sudo systemd-run --quiet --unit="$rollback" --on-active=10min \
+    --timer-property=AccuracySec=1s /usr/bin/cp -a "$prev" "$pam"
+  printf '%s\n' "$new" | sudo tee "$pam.dotfiles-new" >/dev/null
+  sudo chmod 644 "$pam.dotfiles-new"
+  sudo mv "$pam.dotfiles-new" "$pam"
+  echo "Installed. A timer puts the old one back in 10 minutes unless both tests pass."
+
+  if ! pam_test "YubiKey plugged in: its PIN, then touch it."; then
+    restore_prev; die "the YubiKey test failed"
+  fi
+  sudo -n -v   # keep the cache fresh for a restore
+  read -r -p "Unplug the YubiKey, then press Enter. " _ </dev/tty
+  if ! pam_test "no YubiKey: your password, then the 6-digit code."; then
+    restore_prev; die "the password + code test failed"
+  fi
+  sudo -n systemctl stop "$rollback.timer" 2>/dev/null || sudo systemctl stop "$rollback.timer"
+  echo
+  echo "Done: both ways in work, rollback cancelled. Try the lock screen (Super+L)."
+  echo "Logging in with the YubiKey leaves the GNOME keyring locked; it asks"
+  echo "for your password the first time something needs it."
+}
+
+case ${1:-} in
+  --status)
+    enrolled && grep -qF "$marker" "$pam" && installed
+    exit ;;
+  --uninstall)
+    grep -qF "$marker" "$pam" || { echo "Not installed."; exit 0; }
+    [[ -r $orig ]] || die "$orig is missing; can't restore the stock file"
+    sudo cp -a "$orig" "$pam"
+    echo "Stock system-auth restored. Enrolment files are kept: $u2f_keys $totp"
+    exit ;;
+  --add-key)
+    need_tools
+    [[ -s $u2f_keys ]] || die "no YubiKey enrolled yet; run setup-yubikey-login first"
+    echo "Unplug the YubiKey already enrolled and plug in the new one."
+    read -r -p "Press Enter when ready. " _ </dev/tty
+    enrol_yubikey yes
+    exit ;;
+  "") ;;
+  *) die "unknown option: $1 (see the top of $0)" ;;
+esac
+
+need_tools
+desired >/dev/null   # check the stock layout before enrolling anything
+if [[ -s $u2f_keys ]]; then echo "YubiKey: already enrolled ($u2f_keys)."; else enrol_yubikey no; fi
+if [[ -s $totp ]]; then echo "TOTP: already set up ($totp)."; else enrol_totp; fi
+install_pam
