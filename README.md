@@ -50,8 +50,8 @@ tmux plugins refresh weekly on `chezmoi update`; `chezmoi update
 | To change | How |
 |---|---|
 | A config file | `chezmoi edit ~/.tmux.conf` |
-| A file you already edited in `~` | plain files (`.vimrc`, `starship.toml`, `~/.local/bin/*`, Alacritty, audio): `chezmoi re-add <file>`; templates (`.zshrc`, `.tmux.conf`, `.gitconfig`): `chezmoi merge <file>` |
-| `~/.bashrc` | `chezmoi edit ~/.bashrc`, never `chezmoi add` it. Lines just for this machine: `~/.config/shell/local.d/*.sh` |
+| A file you already edited in `~` | plain files (`.vimrc`, `starship.toml`, `~/.local/bin/*`, Alacritty, audio): `chezmoi re-add <file>`; templates (`.tmux.conf`, `.gitconfig`): `chezmoi merge <file>` |
+| `~/.bashrc`, `~/.zshrc` | `chezmoi edit ~/.bashrc` (or `~/.zshrc`), never `chezmoi add` them. Lines just for this machine: `~/.config/shell/local.d/*.sh` |
 | Packages | [`packages.yaml`](home/.chezmoidata/packages.yaml); the next apply installs what's missing |
 | What a machine gets, or a new machine | [`machines.yaml`](home/.chezmoidata/machines.yaml) |
 | pacman options | [`pacman.yaml`](home/.chezmoidata/pacman.yaml) |
@@ -87,13 +87,14 @@ That clones this repo to `~/.local/share/chezmoi` and sets the machine up:
    Super+Enter shortcut and the GNOME extensions (GNOME asks you to confirm
    each install).
 
-Existing files are overwritten: back up your current `~/.zshrc`,
-`~/.tmux.conf`, `~/.vimrc` and `~/.gitconfig` first, or run
-`chezmoi init eijnar`, then `chezmoi diff`, then `chezmoi apply`.
-`~/.bash_profile` is only created if it's missing. `~/.bashrc` is rebuilt
-(see [Shells](#shells-bash-hands-over-to-zsh)): from an existing one, only the
-marked blocks other tools wrote (`# >>> name … >>>` to `# <<< name <<<`) are
-kept, so move anything else to `~/.config/shell/local.d/` first.
+Existing files are overwritten: back up your current `~/.tmux.conf`,
+`~/.vimrc` and `~/.gitconfig` first, or run `chezmoi init eijnar`, then
+`chezmoi diff`, then `chezmoi apply`. `~/.bash_profile` is only created if
+it's missing. `~/.bashrc` and `~/.zshrc` are rebuilt (see
+[Shells](#shells-bash-hands-over-to-zsh)): from an existing one, only the
+marked blocks other tools wrote (`# >>> name … >>>` to `# <<< name <<<`) and
+whatever is below the "Kept on chezmoi apply" line are kept, so move anything
+else to `~/.config/shell/local.d/` first.
 
 On a fresh WSL install, run `pacman -Syu` first: the image's package database
 is usually old.
@@ -122,7 +123,7 @@ work machines.
 | GNOME shortcut Super+Enter → Alacritty | ✓ | ✓ | |
 | GNOME extensions: rounded corners + shadows, Blur my Shell (Alacritty only) | ✓ | ✓ | |
 | ssh-agent user service | ✓ | ✓ | |
-| morbit in zsh, morbit-setup offer | ✓ | ✓ | |
+| morbit-setup offer (it sets up morbit in bash and zsh) | ✓ | ✓ | |
 | `bitwarden-cli`, `ykman`, `libfido2`, pcscd (smart-card side of the YubiKey) | ✓ | ✓ | |
 | YubiKey SSH keys: `setup-yubikey`, GitHub block in `~/.ssh/config` | ✓ | ✓ | |
 | [Log in with the YubiKey or password + TOTP code](#logging-in-with-the-yubikey): `setup-yubikey-login` | | ✓ | |
@@ -160,12 +161,13 @@ settings** (anything that must not be in this public repo) go in
 
 ## morbit
 
-The `morbit` flag makes zsh load the env block that `bin/morbit-setup` (in the
-infrastructure repo) writes into `~/.bashrc`, under ksh emulation. That needs
-the zsh support in `bin/morbit-env.sh` (until that checkout has it, zsh skips
-morbit with a one-line note and `morbit-*` work in bash). Settings such as
-`MORBIT_SSH_BASTION` go in `~/.config/shell/local.d/morbit.sh`: a line after the
-block in `~/.bashrc` is never seen by zsh. You're offered a morbit-setup run
+`morbit setup` (in the infrastructure repo) writes its env block into both
+`~/.bashrc` and `~/.zshrc`, and both files keep it on `chezmoi apply` (marked
+blocks are kept). Nothing in this repo loads morbit any more: a machine whose
+`~/.zshrc` has no `# >>> morbit: env` block yet runs `morbit setup` once.
+Settings such as `MORBIT_SSH_BASTION` go in
+`~/.config/shell/local.d/morbit.sh` (read before the block, by bash and zsh).
+The `morbit` flag still decides who is offered a morbit-setup run
 (SSH config, jump hosts) once the infrastructure repo is checked out at
 `~/Projects/infrastructure`. The SSH config for the servers comes from
 morbit-setup, not from here.
@@ -245,8 +247,9 @@ home/
   .chezmoiscripts/           pacman.conf, packages, ssh-agent, PipeWire restart, YubiKey and morbit offers,
                              GNOME shortcut and extensions
   modify_private_dot_bashrc  ~/.bashrc (managed part + what other tools add)
+  modify_dot_zshrc           ~/.zshrc (the same)
   create_private_dot_bash_profile  ~/.bash_profile, only if missing
   private_dot_ssh/modify_private_config  the GitHub block in ~/.ssh/config
-  dot_zshrc.tmpl, dot_tmux.conf.tmpl, dot_vimrc, dot_gitconfig.tmpl, …
+  dot_tmux.conf.tmpl, dot_vimrc, dot_gitconfig.tmpl, …
 archive/hyprland/            old Hyprland/waybar/kitty/foot/wpaperd configs (not installed)
 ```

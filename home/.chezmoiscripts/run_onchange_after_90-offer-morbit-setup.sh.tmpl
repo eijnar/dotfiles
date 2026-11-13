@@ -4,12 +4,15 @@
 # config and jump hosts for the servers, and the morbit shell environment.
 # None of that is stored in this (public) repo. chezmoi runs this again when
 # the infrastructure checkout appears, so a fresh machine still gets the offer:
-#   morbit-setup present: {{ if stat (joinPath .chezmoi.homeDir "Projects/infrastructure/bin/morbit-setup") }}yes{{ else }}no{{ end }}
+#   morbit-setup present: {{ if stat (joinPath .chezmoi.homeDir "Projects/infrastructure/bin/libexec/morbit-setup") }}yes{{ else }}no{{ end }}
 set -euo pipefail
 
-setup=~/Projects/infrastructure/bin/morbit-setup
+setup=~/Projects/infrastructure/bin/libexec/morbit-setup
 
-if grep -q '^# >>> morbit: env ' ~/.bashrc 2>/dev/null; then
+# Set up = its env block in ~/.bashrc, and in ~/.zshrc where zsh is installed
+# (the block is what loads morbit in each shell).
+if grep -q '^# >>> morbit: env ' ~/.bashrc 2>/dev/null &&
+   { ! command -v zsh >/dev/null 2>&1 || grep -q '^# >>> morbit: env ' "${ZDOTDIR:-$HOME}/.zshrc" 2>/dev/null; }; then
   exit 0   # already set up
 fi
 if [[ ! -x $setup ]]; then
