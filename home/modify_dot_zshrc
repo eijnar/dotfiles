@@ -1,9 +1,27 @@
+{{- /* chezmoi:modify-template */ -}}
+{{- /*
+  ~/.zshrc is rebuilt on every apply, like ~/.bashrc:
+    1. the managed part below (from the repo),
+    2. a marker line,
+    3. marked blocks ("# >>> name ... >>>" ... "# <<< name <<<") found above the
+       marker in the existing file, e.g. morbit-setup's,
+    4. everything that was below the marker in the existing file, verbatim.
+*/ -}}
 {{- $m := includeTemplate "machine.json" . | fromJson -}}
+{{- $marker := "# ---- Kept on chezmoi apply: anything below this line (other tools' additions) ----" -}}
+{{- $head := .chezmoi.stdin -}}
+{{- $tail := "" -}}
+{{- if contains (printf "\n%s\n" $marker) (printf "\n%s" .chezmoi.stdin) -}}
+{{-   $parts := splitn (printf "%s\n" $marker) 2 (printf "\n%s" .chezmoi.stdin) -}}
+{{-   $head = $parts._0 -}}
+{{-   $tail = $parts._1 -}}
+{{- end -}}
 #
 # ~/.zshrc — managed by chezmoi (github.com/eijnar/dotfiles).
-# Edit with `chezmoi edit ~/.zshrc`; machine-local settings belong in
+# Edit this part with `chezmoi edit ~/.zshrc` (direct edits above the "Kept"
+# line are overwritten on the next apply). Machine-local settings belong in
 # ~/.config/shell/local.d/*.sh. zsh is normally started by ~/.bashrc: the
-# login shell stays bash (see there).
+# login shell stays bash (see there). Never `chezmoi add` this file.
 #
 
 [[ -r ~/.config/shell/env.sh ]] && source ~/.config/shell/env.sh
@@ -54,25 +72,6 @@ zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'
 
 # Prompt
 (( $+commands[starship] )) && eval "$(starship init zsh)"
-{{- if $m.morbit }}
-
-# morbit: load the env block that bin/morbit-setup writes into ~/.bashrc.
-# morbit-env.sh is written for bash, so it runs under ksh emulation (bash-like
-# word splitting and arrays, also for the functions it defines);
-# function_argzero lets it find its own repo through $0. Older checkouts of
-# the infrastructure repo can't be loaded from zsh: those are skipped.
-if [[ -r ~/.bashrc ]]; then
-  __morbit_env=$(sed -n '/^# >>> morbit: env /,/^# <<< morbit: env <<</p' ~/.bashrc)
-  if [[ $__morbit_env =~ '[^ ]*/bin/morbit-env\.sh' ]]; then
-    if grep -q function_argzero "$MATCH" 2>/dev/null; then
-      emulate ksh -o function_argzero -c "$__morbit_env"
-    else
-      print -u2 "morbit: ${MATCH%/bin/*} has no zsh support yet (git pull it); morbit-* only work in bash until then"
-    fi
-  fi
-  unset __morbit_env
-fi
-{{- end }}
 
 # Machine-local settings (not in the repo)
 for __f in ~/.config/shell/local.d/*.sh(N); do source "$__f"; done
@@ -92,3 +91,10 @@ unset __f
 
 # Tell me when the dotfiles have updates waiting or changes to push
 [[ -r ~/.config/shell/dotfiles-check.sh ]] && source ~/.config/shell/dotfiles-check.sh
+
+{{ $marker }}
+{{- range $block := regexFindAll "(?ms)^# >>> [^\n]*>>>[ \t\r]*\n.*?^# <<< [^\n]*<<<[ \t\r]*(?:\n|\\z)" $head -1 }}
+
+{{ trimSuffix "\n" $block }}
+{{- end }}
+{{ $tail -}}
