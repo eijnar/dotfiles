@@ -112,6 +112,7 @@ work machines.
 |---|---|---|---|
 | zsh (via bash), starship, fastfetch, tmux, vim, git | ✓ | ✓ | ✓ |
 | `jaktkollen` | ✓ | ✓ | ✓ |
+| [`tmux-claude`](#tmux-claude): save and restore tmux windows with their Claude Code sessions | ✓ | ✓ | ✓ |
 | tmux: minimal theme, mouse (scroll, click pane, drag borders, select text → clipboard) | ✓ | ✓ | ✓ |
 | `ssh` sends TERM=xterm-256color from Alacritty/tmux | ✓ | ✓ | ✓ |
 | pacman.conf: colour, parallel downloads, version table | ✓ | ✓ | ✓ |
@@ -119,6 +120,7 @@ work machines.
 | WirePlumber: disable unused sound cards | ✓ | | |
 | `monitor_on` / `monitor_off` / `monitor-toggle` | ✓ | | |
 | `whitelight` | ✓ | | |
+| [`wow-fullscreen-fix`](#wow-fullscreen-fix): Steam launch wrapper, WoW black screen under fractional scaling | ✓ | | |
 | Alacritty: no border, padding, Hack Nerd Font, light transparency, themes to try | ✓ | ✓ | |
 | GNOME shortcut Super+Enter → Alacritty | ✓ | ✓ | |
 | GNOME extensions: rounded corners + shadows, Blur my Shell (Alacritty only) | ✓ | ✓ | |
@@ -171,6 +173,27 @@ The `morbit` flag still decides who is offered a morbit-setup run
 (SSH config, jump hosts) once the infrastructure repo is checked out at
 `~/Projects/infrastructure`. The SSH config for the servers comes from
 morbit-setup, not from here.
+
+## tmux-claude
+
+`tmux-claude save` records every tmux pane: session, window name, layout,
+directory, and the Claude Code session running in it (from
+`~/.claude/sessions/<pid>.json`). `tmux-claude restore` rebuilds them after a
+logout or reboot and runs `claude --resume <id>` in each pane; sessions that
+already exist are skipped. `tmux-claude show` prints the snapshot, which lives
+in `~/.local/state/tmux-claude/layout.tsv`.
+
+## wow-fullscreen-fix
+
+On machines with `gaming: true`. Under GNOME, a fullscreen Proton (X11) game
+stays black while any monitor uses fractional scaling, until its window is
+moved. Set the Battle.net shortcut's Steam launch options to
+
+    ~/.local/bin/wow-fullscreen-fix %command%
+
+and the helper nudges each new World of Warcraft window a few seconds after it
+opens (out of fullscreen, 1px move, back to fullscreen), then exits with
+Battle.net. It logs to `~/.local/state/wow-fullscreen-fix.log`.
 
 ## Focusrite Scarlett 4i4
 

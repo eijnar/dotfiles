@@ -35,6 +35,8 @@ packages:
     - libpam-google-authenticator  # TOTP code after the password
     - pam-u2f           # YubiKey login
     - qrencode          # QR code for the authenticator app
+  gaming:
+    - python-xlib       # wow-fullscreen-fix.py
   focusrite:
     - pipewire
     - pipewire-pulse

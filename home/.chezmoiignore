@@ -30,6 +30,11 @@
 .config/alacritty
 {{- end }}
 
+{{- if not $m.gaming }}
+.local/bin/wow-fullscreen-fix
+.local/bin/wow-fullscreen-fix.py
+{{- end }}
+
 {{- if not $m.yubikey_login }}
 .local/bin/setup-yubikey-login
 {{- end }}
