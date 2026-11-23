@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Steam launch-options wrapper for Battle.net/WoW:
+#   ~/.local/bin/wow-fullscreen-fix %command%
+# Starts the nudge helper alongside the game; it stops when the game command exits.
+python3 "$(dirname "$(readlink -f "$0")")/wow-fullscreen-fix.py" --parent $$ \
+    >>"${XDG_STATE_HOME:-$HOME/.local/state}/wow-fullscreen-fix.log" 2>&1 &
+exec "$@"

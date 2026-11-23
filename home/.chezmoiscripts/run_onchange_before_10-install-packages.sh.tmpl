@@ -10,6 +10,7 @@
 {{- if $m.focusrite }}{{ $pkgs = concat $pkgs .packages.focusrite }}{{ end }}
 {{- if $m.github_yubikey }}{{ $pkgs = concat $pkgs .packages.github_yubikey }}{{ end }}
 {{- if $m.yubikey_login }}{{ $pkgs = concat $pkgs .packages.yubikey_login }}{{ end }}
+{{- if $m.gaming }}{{ $pkgs = concat $pkgs .packages.gaming }}{{ end }}
 {{- $pkgs = $pkgs | uniq | sortAlpha }}
 # packages: {{ $pkgs | join " " }}
 set -euo pipefail

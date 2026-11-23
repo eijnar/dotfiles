@@ -20,6 +20,7 @@ machines:
     focusrite: false     # Scarlett 4i4: split into named devices while plugged in, pro-audio lock
     github_yubikey: false  # YubiKey SSH keys: setup-yubikey, GitHub block in ~/.ssh/config
     yubikey_login: false   # log in with the YubiKey (PIN + touch) or password + TOTP code: setup-yubikey-login
+    gaming: false        # wow-fullscreen-fix: Steam launch wrapper that un-blacks WoW under fractional scaling
     disable_audio_devices: []   # ALSA cards WirePlumber should ignore
   hosts:
     strumpdator:         # home desktop
@@ -30,6 +31,7 @@ machines:
       monitors: true
       focusrite: true
       github_yubikey: true
+      gaming: true
       disable_audio_devices:
         - alsa_card.pci-0000_18_00.1
         - alsa_card.pci-0000_03_00.1

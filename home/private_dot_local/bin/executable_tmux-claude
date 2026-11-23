@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+# Save and restore tmux sessions, including the Claude Code session in each pane.
+#
+#   tmux-claude save      snapshot all tmux sessions to the state file
+#   tmux-claude restore   recreate them (sessions that already exist are skipped)
+#   tmux-claude show      print the saved snapshot
+#
+# Claude session IDs come from ~/.claude/sessions/<pid>.json (matched on tmux pane
+# ID), falling back to a "--resume <id>" argument on a claude process in the pane.
+set -euo pipefail
+
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/tmux-claude"
+STATE_FILE="${TMUX_CLAUDE_STATE:-$STATE_DIR/layout.tsv}"
+
+# Print "<pane_id>\t<session_id>" for every live Claude session that runs in tmux.
+claude_sessions_by_pane() {
+    local f json pid sid pane
+    for f in "$HOME"/.claude/sessions/*.json; do
+        [[ -f $f ]] || continue
+        json=$(<"$f")
+        [[ $json =~ \"pid\":([0-9]+) ]] || continue
+        pid=${BASH_REMATCH[1]}
+        kill -0 "$pid" 2>/dev/null || continue          # skip records of processes that are gone
+        [[ $json =~ \"sessionId\":\"([^\"]+)\" ]] || continue
+        sid=${BASH_REMATCH[1]}
+        [[ $json =~ \"tmux\":\"[^\"]*\.(%[0-9]+)\" ]] || continue   # "claude:@4.%4" -> "%4"
+        pane=${BASH_REMATCH[1]}
+        printf '%s\t%s\n' "$pane" "$sid"
+    done
+}
+
+# Fallback: a "--resume <id>" argument on any claude process below the pane's shell.
+resume_arg_for_pane() {
+    local pid
+    for pid in $(pgrep -x claude); do
+        local p=$pid
+        while [[ $p -gt 1 ]]; do
+            p=$(ps -o ppid= -p "$p" 2>/dev/null | tr -d ' ') || break
+            [[ -z $p ]] && break
+            if [[ $p == "$1" ]]; then
+                tr '\0' '\n' < "/proc/$pid/cmdline" | grep -A1 -x -- '--resume' | sed -n 2p
+                return
+            fi
+        done
+    done
+}
+
+save() {
+    mkdir -p "$STATE_DIR"
+    declare -A by_pane=()
+    local pane_id sid
+    while IFS=$'\t' read -r pane_id sid; do by_pane[$pane_id]=$sid; done < <(claude_sessions_by_pane)
+
+    local tmp; tmp=$(mktemp "$STATE_DIR/layout.XXXXXX")
+    # session, window index, window name, window layout, pane index, cwd, claude session id
+    local sess win name layout pane cwd pid
+    while IFS=$'\t' read -r sess win name layout pane cwd pid pane_id; do
+        sid=${by_pane[$pane_id]:-}
+        [[ -z $sid ]] && sid=$(resume_arg_for_pane "$pid")
+        printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$sess" "$win" "$name" "$layout" "$pane" "$cwd" "$sid"
+    done < <(tmux list-panes -a -F '#{session_name}	#{window_index}	#{window_name}	#{window_layout}	#{pane_index}	#{pane_current_path}	#{pane_pid}	#{pane_id}') > "$tmp"
+    mv "$tmp" "$STATE_FILE"
+    echo "Saved $(wc -l < "$STATE_FILE") pane(s) to $STATE_FILE"
+    show
+}
+
+show() {
+    [[ -f $STATE_FILE ]] || { echo "No snapshot at $STATE_FILE" >&2; exit 1; }
+    awk -F'\t' '{ printf "%s:%s.%s  %-16s %-40s %s\n", $1, $2, $5, $3, $6, ($7 ? "claude " $7 : "(shell)") }' "$STATE_FILE"
+}
+
+pane_cmd() {
+    if [[ -n $1 ]]; then
+        printf 'claude --resume %q; exec "$SHELL"' "$1"
+    else
+        printf 'exec "$SHELL"'
+    fi
+}
+
+restore() {
+    [[ -f $STATE_FILE ]] || { echo "No snapshot at $STATE_FILE" >&2; exit 1; }
+    declare -A created=() skipped=() made_win=() layouts=()
+    local sess win name layout pane cwd sid target first
+    while IFS=$'\t' read -r sess win name layout pane cwd sid; do
+        [[ -n ${skipped[$sess]:-} ]] && continue
+        [[ -d $cwd ]] || cwd=$HOME
+        target="$sess:$win"
+
+        if [[ -z ${created[$sess]:-} ]]; then
+            if tmux has-session -t "=$sess" 2>/dev/null; then
+                echo "Session '$sess' already exists, skipping it." >&2
+                skipped[$sess]=1
+                continue
+            fi
+            tmux new-session -d -s "$sess" -n "$name" -c "$cwd" "$(pane_cmd "$sid")"
+            first=$(tmux list-windows -t "=$sess" -F '#{window_index}' | head -n1)
+            [[ $first != "$win" ]] && tmux move-window -s "$sess:$first" -t "$target"
+            created[$sess]=1
+            made_win[$target]=1
+            layouts[$target]=$layout
+        elif [[ -z ${made_win[$target]:-} ]]; then
+            tmux new-window -d -t "$target" -n "$name" -c "$cwd" "$(pane_cmd "$sid")"
+            made_win[$target]=1
+            layouts[$target]=$layout
+        else
+            tmux split-window -d -t "$target" -c "$cwd" "$(pane_cmd "$sid")"
+        fi
+        # Keep the saved window names instead of letting tmux rename them.
+        tmux set-option -w -t "$target" automatic-rename off
+    done < "$STATE_FILE"
+
+    for target in "${!layouts[@]}"; do
+        tmux select-layout -t "$target" "${layouts[$target]}" >/dev/null 2>&1 || true
+    done
+    if [[ ${#created[@]} -gt 0 ]]; then
+        echo "Restored: ${!created[*]}. Attach with: tmux attach -t <session>"
+    fi
+}
+
+case "${1:-}" in
+    save) save ;;
+    restore) restore ;;
+    show) show ;;
+    *) echo "usage: ${0##*/} save|restore|show" >&2; exit 2 ;;
+esac
