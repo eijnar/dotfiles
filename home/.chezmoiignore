@@ -5,6 +5,7 @@
 .config/wireplumber/wireplumber.conf.d/60-scarlett-4i4-split.conf
 .local/share
 .config/wireplumber/wireplumber.conf.d/54-scarlett-pro-audio-only.conf
+.config/wireplumber/wireplumber.conf.d/56-scarlett-quantum.conf
 .config/alsa-card-profile
 {{- end }}
 
